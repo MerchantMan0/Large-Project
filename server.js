@@ -27,6 +27,7 @@ app.use((req, res, next) => {
   next()
 })
 
+// again does not work
 function requireBearer(req, res, next) {
   const auth = req.headers.authorization
   if (!auth || !String(auth).startsWith('Bearer ')) {
