@@ -6,7 +6,7 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const { MongoClient, ObjectId } = require('mongodb')
 const { processSubmissionEvaluation } = require('./lib/submissionEvaluation')
-const { COLLECTION_SUBMISSIONS } = require('./lib/challengeSchema')
+const { COLLECTION_CHALLENGES, COLLECTION_SUBMISSIONS } = require('./lib/challengeSchema')
 
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
@@ -144,13 +144,16 @@ function parseListPagination(query) {
   return { page, pageSize }
 }
 
-function staticChallengeListItem() {
-  return {
-    id: 'Hardest-Challenge',
-    title: 'Hardest Challenge',
-    week: 1,
-    status: 'open',
+function challengeToApiListItem(doc) {
+  const id = doc && doc.id != null ? String(doc.id) : ''
+  if (!id) return null
+  const item = {
+    id,
+    title: doc.title != null ? String(doc.title) : id,
+    week: typeof doc.week === 'number' && Number.isFinite(doc.week) ? doc.week : 1,
+    status: doc.status != null ? String(doc.status) : 'open',
   }
+  return item
 }
 
 /** Same shape as GET /challenges/current */
@@ -362,16 +365,41 @@ app.get('/challenges/current', (req, res) => {
   res.status(200).json(staticChallengeDetail('Hardest-Challenge'))
 })
 
-app.get('/challenges', requireBearer, (req, res) => {
+app.get('/challenges', requireBearer, async (req, res) => {
   const { page, pageSize } = parseListPagination(req.query)
-  void req.query.week
-  void req.query.status
-  res.status(200).json({
-    items: [staticChallengeListItem()],
-    page,
-    page_size: pageSize,
-    total: 1,
-  })
+  const filter = {}
+  if (req.query.week != null && String(req.query.week).trim() !== '') {
+    const w = parseInt(req.query.week, 10)
+    if (!Number.isNaN(w)) filter.week = w
+  }
+  if (req.query.status != null && String(req.query.status).trim() !== '') {
+    filter.status = String(req.query.status)
+  }
+  const skip = (page - 1) * pageSize
+  try {
+    const coll = mongoDb().collection(COLLECTION_CHALLENGES)
+    const [rows, total] = await Promise.all([
+      coll
+        .find(filter, {
+          projection: { id: 1, title: 1, week: 1, status: 1 },
+        })
+        .sort({ id: 1 })
+        .skip(skip)
+        .limit(pageSize)
+        .toArray(),
+      coll.countDocuments(filter),
+    ])
+    const items = rows.map(challengeToApiListItem).filter(Boolean)
+    res.status(200).json({
+      items,
+      page,
+      page_size: pageSize,
+      total,
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
 app.get('/challenges/:challenge_id/leaderboard', (req, res) => {
@@ -407,21 +435,29 @@ app.get('/challenges/:challenge_id/submissions', async (req, res) => {
 })
 
 app.post('/challenges/:challenge_id/submissions', requireBearer, async (req, res) => {
+  const userId = req.user && req.user.id != null ? String(req.user.id) : ''
+  if (!userId) {
+    return res.status(401).json({ error: 'Invalid token payload' })
+  }
   const language =
     req.body && req.body.language != null
       ? String(req.body.language)
       : 'javascript'
   const source =
     req.body && req.body.source != null ? String(req.body.source) : ''
+  const defaultDisplay =
+    req.user && req.user.username != null && String(req.user.username).trim() !== ''
+      ? String(req.user.username)
+      : userId
   const displayName =
     req.body && req.body.display_name != null && req.body.display_name !== ''
       ? String(req.body.display_name)
-      : 'Mockable User'
+      : defaultDisplay
   const lines = source === '' ? 1 : source.split('\n').length
   const now = new Date()
   const doc = {
     challenge_id: req.params.challenge_id,
-    user_id: 'usr_mocked',
+    user_id: userId,
     display_name: displayName,
     language,
     source,
