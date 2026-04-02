@@ -186,12 +186,12 @@ app.post('/auth/register', async (req, res) => {
       email:                   email.toLowerCase(),
       password:                hashedPassword,
       username:                username || 'new_user',
-      email_verified:          true,
+      email_verified:          false,
       verification_token:      verificationToken,
       verification_expires_at: verificationExpiresAt,
     })
  
-    //await sendVerificationEmail(email, verificationToken)
+    await sendVerificationEmail(email, verificationToken)
  
     return res.status(201).json({
       user_id: result.insertedId.toString(),
