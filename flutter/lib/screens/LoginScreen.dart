@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
-
 import '../utils/GlobalData.dart';
 import '../utils/getAPI.dart';
 
@@ -41,7 +39,7 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
+      child: SizedBox(
         width: 250,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -59,7 +57,7 @@ class _MainPageState extends State<MainPage> {
             ),
             Row(
               children: <Widget>[
-                Container(
+                SizedBox(
                   width: 250,
                   child: TextField(
                     onChanged: (text) {
@@ -79,7 +77,7 @@ class _MainPageState extends State<MainPage> {
             SizedBox(height: 10),
             Row(
               children: <Widget>[
-                Container(
+                SizedBox(
                   width: 250,
                   child: TextField(
                     obscureText: true,
@@ -97,9 +95,7 @@ class _MainPageState extends State<MainPage> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
-            Row(
-              children: <Widget>[
+            SizedBox(height: 20),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.brown[50],
@@ -119,7 +115,7 @@ class _MainPageState extends State<MainPage> {
 
                     try {
                       //Change to server ip
-                      String url = 'http://10.0.2.2:8000/auth/login';
+                      String url = '${GlobalData.apiURL}/auth/login';
                       String ret = await CardsData.getJson(url, payload);
                       jsonObject = json.decode(ret);
                     } catch (e) {
@@ -144,12 +140,8 @@ class _MainPageState extends State<MainPage> {
                     style: TextStyle(fontSize: 14),
                   ),
                 ),
-              ],
-            ),
             //Register Button
-            SizedBox(height: 20),
-            Row(
-              children: <Widget>[
+            SizedBox(height: 15),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.brown[50],
@@ -161,8 +153,6 @@ class _MainPageState extends State<MainPage> {
                   },
                   child: const Text('Register'),
                 )
-              ],
-            )
           ],
         ),
       ),
