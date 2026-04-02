@@ -140,10 +140,27 @@ class _MainPageState extends State<MainPage> {
                     }
                   },
                   child: Text(
-                    'Do Login',
+                    'Login',
                     style: TextStyle(fontSize: 14),
                   ),
                 ),
+              ],
+            ),
+            //Register Button
+            SizedBox(height: 20),
+            Row(
+              children: <Widget>[
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.brown[50],
+                    foregroundColor: Colors.black,
+                    padding: EdgeInsets.all(8),
+                  ),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/registration');
+                  },
+                  child: const Text('Register'),
+                )
               ],
             )
           ],
