@@ -385,42 +385,148 @@ app.get('/leaderboard/global', (req, res) => {
   res.status(200).json(staticLeaderboard(req.query))
 })
 
-app.get('/users/me', requireBearer, (req, res) => {
-  res.status(200).json({
-    id: 'usr_me',
-    display_name: 'Mock Me',
-    stats: { submissions: 9, accepted: 99, challenges_solved: 999 },
-  })
+//-----------
+
+app.get('/users/me', requireBearer, async (req, res) => {
+  try{
+    const { ObjectId } = require('mongodb')
+    const users = client.db().collection('users')
+    const userMe = await users.findOne({_id: new ObjectId(req.user.id)  })
+
+    if(!userMe){
+      return res.status(404).json({error: 'User not found'})
+    }
+
+    if(userMe){
+      return res.status(200).json({
+        user_id: userMe._id.toString(),
+        username: userMe.username || 'new_user',
+        email: userMe.email,
+        stats: { 
+          submissions: totalSubmissions, 
+          accepted: acceptedSubmissions, 
+          challenges_solved: challengesSolved,
+        },
+      })
+    }
+  } catch(err){
+      console.error('GET /users/me error:', err)
+      return res.status(500).json({ error: 'Internal Server Error' })
+  }
 })
 
-app.get('/users/:user_id', (req, res) => {
-  res.status(200).json({
-    id: req.params.user_id,
-    display_name: 'Mock User',
-    stats: { submissions: 8, accepted: 88, challenges_solved: 888 },
-  })
-})
+app.get('/users/:user_id', async (req, res) => {
+ try {
+    const { ObjectId } = require('mongodb')
+    const users = client.db().collection('users')
 
-app.get('/users/:user_id/submissions', (req, res) => {
-  const { page, pageSize } = parseListPagination(req.query)
-  res.status(200).json({
-    items: [
-      {
-        id: 'submission_1',
-        challenge_id: 'Hardest-Challenge',
-        user_id: req.params.user_id,
-        display_name: 'Mockable User',
-        language: 'javascript',
-        status: 'accepted',
-        submitted_at: '9999-9-9T12:00:00.000Z',
-        metrics: { gas: 999, memory_bytes: 999, lines: 999 },
+    let query
+    try {
+      query = { _id: new ObjectId(req.params.user_id) }
+    } catch {
+      return res.status(400).json({ error: 'Invalid user_id format' })
+    }
+
+    const user = await users.findOne(query)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const submissions = client.db().collection('submissions')
+    const totalSubmissions = await submissions.countDocuments({ user_id: req.params.user_id })
+    const acceptedSubmissions = await submissions.countDocuments({ user_id: req.params.user_id, status: 'accepted' })
+    const challengesSolved = await submissions.distinct('challenge_id', { user_id: req.params.user_id, status: 'accepted' })
+
+    return res.status(200).json({
+      user_id: user._id.toString(),
+      username: user.username,
+      stats: {
+        submissions: totalSubmissions,
+        accepted: acceptedSubmissions,
+        challenges_solved: challengesSolved.length,
       },
-    ],
-    page,
-    page_size: pageSize,
-    total: 1,
-  })
+    })
+  } catch (err) {
+    console.error('GET /users/:user_id error:', err)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
 })
+
+app.get('/users/:user_id/submissions', async (req, res) => {
+try {
+    const { ObjectId } = require('mongodb')
+    const users = client.db().collection('users')
+
+    let query
+    try {
+      query = { _id: new ObjectId(req.params.user_id) }
+    } catch {
+      return res.status(400).json({ error: 'Invalid user_id format' })
+    }
+
+    const user = await users.findOne(query)
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const submissions = client.db().collection('submissions')
+    const totalSubmissions = await submissions.countDocuments({ user_id: req.params.user_id })
+    const acceptedSubmissions = await submissions.countDocuments({ user_id: req.params.user_id, status: 'accepted' })
+    const challengesSolved = await submissions.distinct('challenge_id', { user_id: req.params.user_id, status: 'accepted' })
+
+    return res.status(200).json({
+      user_id: user._id.toString(),
+      username: user.username,
+      stats: {
+        submissions: totalSubmissions,
+        accepted: acceptedSubmissions,
+        challenges_solved: challengesSolved.length,
+      },
+    })
+  } catch (err) {
+    console.error('GET /users/:user_id error:', err)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+app.get('/users/:user_id/submissions', async (req, res) => {
+  try {
+    const { page, pageSize } = parseListPagination(req.query)
+    const submissions = client.db().collection('submissions')
+
+    const filter = { user_id: req.params.user_id }
+    const total = await submissions.countDocuments(filter)
+    const items = await submissions
+      .find(filter)
+      .sort({ submitted_at: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .toArray()
+
+    return res.status(200).json({
+      items: items.map(s => ({
+        id: s._id.toString(),
+        challenge_id: s.challenge_id,
+        user_id: s.user_id,
+        display_name: s.display_name || null,
+        language: s.language,
+        status: s.status,
+        submitted_at: s.submitted_at,
+        metrics: s.metrics || null,
+      })),
+      page,
+      page_size: pageSize,
+      total,
+    })
+  } catch (err) {
+    console.error('GET /users/:user_id/submissions error:', err)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+
+//----------------
+
 async function start() {
   try {
     await client.connect()
