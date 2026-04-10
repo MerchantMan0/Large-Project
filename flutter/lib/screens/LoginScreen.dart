@@ -114,7 +114,6 @@ class _MainPageState extends State<MainPage> {
                     var jsonObject;
 
                     try {
-                      //Change to server ip
                       String url = '${GlobalData.apiURL}/auth/login';
                       String ret = await CardsData.getJson(url, payload);
                       jsonObject = json.decode(ret);
