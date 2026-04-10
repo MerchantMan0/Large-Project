@@ -1,17 +1,23 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-function Login() {
+function Login({ setToken }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState(null);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  
+  const goToRegister = () => {
+    navigate("/register");
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/auth/login", {
+      const response = await fetch("http://localhost:3000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -24,6 +30,8 @@ function Login() {
       const data = await response.json();
       setToken(data.access_token);
       console.log("Logged in, token:", data.access_token);
+      // Go to main page after successful login
+      navigate("/main");
     } catch (err) {
       setError(err.message);
     }
@@ -54,8 +62,10 @@ function Login() {
         <button type="submit" style={{ marginTop: "1rem" }}>
           Login
         </button>
+        <button type="button" onClick={goToRegister} style={{ marginTop: "1rem" }}>
+          Register
+        </button>
       </form>
-      {token && <p style={{ color: "green" }}>Token: {token}</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
