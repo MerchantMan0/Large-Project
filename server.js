@@ -42,6 +42,7 @@ function submissionToApiDetail(doc) {
     submitted_at: iso(doc.submitted_at),
     evaluated_at: doc.evaluated_at ? iso(doc.evaluated_at) : null,
     metrics: normalizeMetrics(doc.metrics),
+    console: Array.isArray(doc.console) ? doc.console : [],
   }
 }
 
