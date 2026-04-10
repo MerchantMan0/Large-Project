@@ -1,6 +1,4 @@
 require('dotenv').config()
-const fs = require('fs')
-const path = require('path')
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
@@ -13,26 +11,9 @@ const jwt = require('jsonwebtoken')
 const nodemailer = require('nodemailer')
 const crypto = require('crypto')
 
-const url =
-  process.env.MONGODB_URI
+const url = process.env.MONGODB_URI
 
-function mongoClientOptions() {
-  const certFile = process.env.MONGODB_X509_CERT_FILE
-  if (!certFile || !String(certFile).trim()) return {}
-  const resolved = path.isAbsolute(certFile)
-    ? certFile
-    : path.resolve(process.cwd(), certFile)
-  if (!fs.existsSync(resolved)) {
-    console.warn('MONGODB_X509_CERT_FILE not found:', resolved)
-  }
-  return {
-    tlsCertificateKeyFile: resolved,
-    authMechanism: 'MONGODB-X509',
-    authSource: '$external',
-  }
-}
-
-const client = new MongoClient(url, mongoClientOptions())
+const client = new MongoClient(url)
 
 function mongoDb() {
   return client.db(process.env.MONGODB_DB || undefined)
