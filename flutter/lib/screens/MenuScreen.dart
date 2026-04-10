@@ -29,8 +29,7 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage>
-    with SingleTickerProviderStateMixin {
+class _MainPageState extends State<MainPage> {
   final TextEditingController _codeController = TextEditingController(
     text: '''-- Write your Lua solution here
 function solve(input)
@@ -41,6 +40,8 @@ end
 
   bool isLoadingChallenge = true;
   bool isSubmitting = false;
+  bool isRunningCode = false;
+
   String message = '';
   String challengeId = '';
   String challengeTitle = 'Loading challenge...';
@@ -50,6 +51,8 @@ end
   int? timeoutMs;
   String opensAt = '';
   String closesAt = '';
+
+  String runOutput = 'Press "Run Code" to see the API response here.';
 
   @override
   void initState() {
@@ -74,7 +77,7 @@ end
           challengeId = (data['id'] ?? '').toString();
           challengeTitle = (data['title'] ?? 'Untitled Challenge').toString();
           challengeDescription =
-              (data['description'] ?? 'No description available.')
+              (data['description'] ?? 'No problem statement available.')
                   .toString();
           challengeWeek = data['week'];
           challengeStatus = (data['status'] ?? '').toString();
@@ -157,6 +160,70 @@ end
       if (mounted) {
         setState(() {
           isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  Future<void> runLuaCode() async {
+    if (challengeId.isEmpty) {
+      setState(() {
+        runOutput = 'No challenge loaded yet.';
+      });
+      return;
+    }
+
+    if (_codeController.text.trim().isEmpty) {
+      setState(() {
+        runOutput = 'Please enter some Lua code before running.';
+      });
+      return;
+    }
+
+    setState(() {
+      isRunningCode = true;
+      runOutput = '';
+    });
+
+    try {
+      final uri = Uri.parse(
+        '${GlobalData.apiURL}/challenges/$challengeId/submissions',
+      );
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${GlobalData.token}',
+        },
+        body: jsonEncode({
+          'language': 'lua',
+          'source': _codeController.text,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        setState(() {
+          runOutput = '';
+        });
+        return;
+      }
+
+      final consoleLines = List<String>.from(data['console'] ?? []);
+
+      setState(() {
+        runOutput = consoleLines.join('\n');
+      });
+    } catch (e) {
+      setState(() {
+        runOutput = '';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isRunningCode = false;
         });
       }
     }
@@ -362,6 +429,81 @@ end
     );
   }
 
+  Widget _buildOutputTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF334155)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.play_circle_outline, color: Colors.white70, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Output',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF020617),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  runOutput,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'monospace',
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: isRunningCode ? null : runLuaCode,
+              icon: isRunningCode
+                  ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+                  : const Icon(Icons.play_arrow),
+              label: Text(isRunningCode ? 'Running...' : 'Run Code'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTopBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -414,6 +556,10 @@ end
                 icon: Icon(Icons.terminal),
                 text: 'Editor',
               ),
+              Tab(
+                icon: Icon(Icons.play_circle_outline),
+                text: 'Output',
+              ),
             ],
           ),
         ],
@@ -430,7 +576,7 @@ end
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           _buildTopBar(),
@@ -444,36 +590,17 @@ end
                 style: const TextStyle(color: Colors.white),
               ),
             ),
-          const Expanded(
+          Expanded(
             child: TabBarView(
               children: [
-                _ProblemTabWrapper(),
-                _EditorTabWrapper(),
+                _buildProblemTab(),
+                _buildEditorTab(),
+                _buildOutputTab(),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-class _ProblemTabWrapper extends StatelessWidget {
-  const _ProblemTabWrapper();
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.findAncestorStateOfType<_MainPageState>();
-    return state == null ? const SizedBox() : state._buildProblemTab();
-  }
-}
-
-class _EditorTabWrapper extends StatelessWidget {
-  const _EditorTabWrapper();
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.findAncestorStateOfType<_MainPageState>();
-    return state == null ? const SizedBox() : state._buildEditorTab();
   }
 }
