@@ -52,6 +52,7 @@ function staticSubmission(submissionId, challengeId = 'Hardest-Challenge') {
     submitted_at: '9999-9-9T12:00:00.000Z',
     evaluated_at: '9999-9-9T12:00:01.000Z',
     metrics: { gas: 999, memory_bytes: 999, lines: 999 },
+    console: [],
   }
 }
 
