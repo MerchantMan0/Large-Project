@@ -36,3 +36,38 @@
     transform: rotate(360deg);
   }
 }
+
+.app-grid {
+  display: grid;
+  grid-template-rows: 60px 1fr;
+  height: 100vh;
+}
+
+.header {
+  background-color: #282c34;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 1fr 2fr; /* problem/editor split */
+  gap: 1rem;
+  padding: 1rem;
+  overflow: hidden; 
+}
+
+.problem {
+  background-color: #f7f7f7;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.editor {
+  background-color: #1e1e1e;
+  color: white;
+  padding: 1rem;
+  overflow-y: auto;
+}
