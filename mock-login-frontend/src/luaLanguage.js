@@ -1,18 +1,23 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Controlled as ControlledEditor } from "react-codemirror2";
-import "codemirror/lib/codemirror.css";
-import "codemirror/mode/lua/lua";
 import Editor from "@monaco-editor/react";
+import { registerLua } from "./luaLanguage";
 import "./App.css";
 
 function MainPage() {
   const navigate = useNavigate();
   const outputRef = useRef(null);
 
-  const [code, setCode] = useState(() => 
+  const [code, setCode] = useState(
     `-- Type Lua code here\nprint("Hello World")`
   );
+
+  // 🔥 Register Lua language once
+  useEffect(() => {
+    import("monaco-editor").then((monaco) => {
+      registerLua(monaco);
+    });
+  }, []);
 
   const handleSubmit = async () => {
     if (!outputRef.current) return;
@@ -55,9 +60,6 @@ function MainPage() {
           style={{ marginLeft: "auto" }}
         >
           Account
-        </button>
-        <button onClick={() => navigate("/leaderboard")}>
-          Leaderboard
         </button>
       </header>
 

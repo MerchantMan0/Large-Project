@@ -19,7 +19,7 @@ function Register(){
     setError("");
 
     try{
-        const response = await fetch("http://localhost:3000/auth/register", {
+        const response = await fetch("/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password, username }),
@@ -45,7 +45,7 @@ function Register(){
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "2rem auto" }}>
+    <div className="register">
         <h2>Register</h2>
         <form onSubmit={handleRegister}>
             <div>

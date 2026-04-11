@@ -4,6 +4,7 @@ import Login from "./Login";
 import Register from "./Register";
 import MainPage from "./MainPage";
 import Account from "./Account";
+import Leaderboard from "./Leaderboard";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || null);
@@ -28,6 +29,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/main" element={<MainPage />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
         {/*
         <Route path="/main" element={
           <ProtectedRoute>
