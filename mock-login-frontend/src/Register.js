@@ -45,7 +45,7 @@ function Register(){
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "2rem auto" }}>
+    <div className="register">
         <h2>Register</h2>
         <form onSubmit={handleRegister}>
             <div>

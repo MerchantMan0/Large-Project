@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./App.css";
 
 function Login({ setToken }) {
   const [email, setEmail] = useState("");
@@ -38,7 +39,7 @@ function Login({ setToken }) {
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "2rem auto" }}>
+    <div className="login">
       <h2>Login</h2>
       <form onSubmit={handleLogin}>
         <div>
