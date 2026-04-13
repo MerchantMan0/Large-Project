@@ -2,17 +2,62 @@ require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
-const { MongoClient } = require('mongodb')
+const { MongoClient, ObjectId } = require('mongodb')
+const { processSubmissionEvaluation } = require('./lib/submissionEvaluation')
+const { COLLECTION_CHALLENGES, COLLECTION_SUBMISSIONS } = require('./lib/challengeSchema')
 
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const nodemailer = require('nodemailer')
 const crypto = require('crypto')
 
-const url =
-  process.env.MONGODB_URI
+const url = process.env.MONGODB_URI
 
 const client = new MongoClient(url)
+
+function mongoDb() {
+  return client.db(process.env.MONGODB_DB || undefined)
+}
+
+function iso(d) {
+  return d instanceof Date && !Number.isNaN(d.getTime()) ? d.toISOString() : null
+}
+
+function normalizeMetrics(m) {
+  const x = m && typeof m === 'object' ? m : {}
+  return {
+    gas: typeof x.gas === 'number' ? x.gas : 0,
+    memory_bytes: typeof x.memory_bytes === 'number' ? x.memory_bytes : 0,
+    lines: typeof x.lines === 'number' ? x.lines : 0,
+  }
+}
+
+function submissionToApiDetail(doc) {
+  return {
+    id: doc._id.toHexString(),
+    challenge_id: doc.challenge_id,
+    user_id: doc.user_id,
+    language: doc.language,
+    status: doc.status,
+    submitted_at: iso(doc.submitted_at),
+    evaluated_at: doc.evaluated_at ? iso(doc.evaluated_at) : null,
+    metrics: normalizeMetrics(doc.metrics),
+    console: Array.isArray(doc.console) ? doc.console : [],
+  }
+}
+
+function submissionToApiListItem(doc) {
+  return {
+    id: doc._id.toHexString(),
+    challenge_id: doc.challenge_id,
+    user_id: doc.user_id,
+    display_name: doc.display_name != null ? String(doc.display_name) : 'Mockable User',
+    language: doc.language,
+    status: doc.status,
+    submitted_at: iso(doc.submitted_at),
+    metrics: normalizeMetrics(doc.metrics),
+  }
+}
 
 //mailer setup
 const transporter = nodemailer.createTransport({
@@ -81,26 +126,16 @@ function parseListPagination(query) {
   return { page, pageSize }
 }
 
-function staticSubmission(submissionId, challengeId = 'Hardest-Challenge') {
-  return {
-    id: submissionId,
-    challenge_id: challengeId,
-    user_id: 'usr_mocked',
-    language: 'javascript',
-    status: 'accepted',
-    submitted_at: '9999-9-9T12:00:00.000Z',
-    evaluated_at: '9999-9-9T12:00:01.000Z',
-    metrics: { gas: 999, memory_bytes: 999, lines: 999 },
+function challengeToApiListItem(doc) {
+  const id = doc && doc.id != null ? String(doc.id) : ''
+  if (!id) return null
+  const item = {
+    id,
+    title: doc.title != null ? String(doc.title) : id,
+    week: typeof doc.week === 'number' && Number.isFinite(doc.week) ? doc.week : 1,
+    status: doc.status != null ? String(doc.status) : 'open',
   }
-}
-
-function staticChallengeListItem() {
-  return {
-    id: 'Hardest-Challenge',
-    title: 'Hardest Challenge',
-    week: 1,
-    status: 'open',
-  }
+  return item
 }
 
 /** Same shape as GET /challenges/current */
@@ -144,19 +179,6 @@ function staticLeaderboard(query) {
     page,
     page_size: pageSize,
     total: 2,
-  }
-}
-
-function staticChallengeSubmissionListItem(challengeId) {
-  return {
-    id: 'submission_1',
-    challenge_id: challengeId,
-    user_id: 'usr_mocked',
-    display_name: 'Mockable User',
-    language: 'javascript',
-    status: 'accepted',
-    submitted_at: '9999-9-9T12:00:00.000Z',
-    metrics: { gas: 999, memory_bytes: 999, lines: 999 },
   }
 }
 
@@ -325,60 +347,171 @@ app.get('/challenges/current', (req, res) => {
   res.status(200).json(staticChallengeDetail('Hardest-Challenge'))
 })
 
-app.get('/challenges', requireBearer, (req, res) => {
+app.get('/challenges', requireBearer, async (req, res) => {
   const { page, pageSize } = parseListPagination(req.query)
-  void req.query.week
-  void req.query.status
-  res.status(200).json({
-    items: [staticChallengeListItem()],
-    page,
-    page_size: pageSize,
-    total: 1,
-  })
+  const filter = {}
+  if (req.query.week != null && String(req.query.week).trim() !== '') {
+    const w = parseInt(req.query.week, 10)
+    if (!Number.isNaN(w)) filter.week = w
+  }
+  if (req.query.status != null && String(req.query.status).trim() !== '') {
+    filter.status = String(req.query.status)
+  }
+  const skip = (page - 1) * pageSize
+  try {
+    const coll = mongoDb().collection(COLLECTION_CHALLENGES)
+    const [rows, total] = await Promise.all([
+      coll
+        .find(filter, {
+          projection: { id: 1, title: 1, week: 1, status: 1 },
+        })
+        .sort({ id: 1 })
+        .skip(skip)
+        .limit(pageSize)
+        .toArray(),
+      coll.countDocuments(filter),
+    ])
+    const items = rows.map(challengeToApiListItem).filter(Boolean)
+    res.status(200).json({
+      items,
+      page,
+      page_size: pageSize,
+      total,
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
 app.get('/challenges/:challenge_id/leaderboard', (req, res) => {
   res.status(200).json(staticLeaderboard(req.query))
 })
 
-app.get('/challenges/:challenge_id/submissions', (req, res) => {
+app.get('/challenges/:challenge_id/submissions', async (req, res) => {
   const { page, pageSize } = parseListPagination(req.query)
   const cid = req.params.challenge_id
-  res.status(200).json({
-    items: [staticChallengeSubmissionListItem(cid)],
-    page,
-    page_size: pageSize,
-    total: 1,
-  })
+  const skip = (page - 1) * pageSize
+  try {
+    const coll = mongoDb().collection(COLLECTION_SUBMISSIONS)
+    const filter = { challenge_id: cid }
+    const [items, total] = await Promise.all([
+      coll
+        .find(filter)
+        .sort({ submitted_at: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .toArray(),
+      coll.countDocuments(filter),
+    ])
+    res.status(200).json({
+      items: items.map(submissionToApiListItem),
+      page,
+      page_size: pageSize,
+      total,
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
-app.post('/challenges/:challenge_id/submissions', requireBearer, (req, res) => {
+app.post('/challenges/:challenge_id/submissions', requireBearer, async (req, res) => {
+  const userId = req.user && req.user.id != null ? String(req.user.id) : ''
+  if (!userId) {
+    return res.status(401).json({ error: 'Invalid token payload' })
+  }
   const language =
     req.body && req.body.language != null
       ? String(req.body.language)
       : 'javascript'
-  res.status(200).json({
-    ...staticSubmission('submission_new', req.params.challenge_id),
+  const source =
+    req.body && req.body.source != null ? String(req.body.source) : ''
+  const defaultDisplay =
+    req.user && req.user.username != null && String(req.user.username).trim() !== ''
+      ? String(req.user.username)
+      : userId
+  const displayName =
+    req.body && req.body.display_name != null && req.body.display_name !== ''
+      ? String(req.body.display_name)
+      : defaultDisplay
+  const lines = source === '' ? 1 : source.split('\n').length
+  const now = new Date()
+  const doc = {
+    challenge_id: req.params.challenge_id,
+    user_id: userId,
+    display_name: displayName,
     language,
-  })
+    source,
+    status: 'queued',
+    submitted_at: now,
+    metrics: { gas: 0, memory_bytes: 0, lines },
+  }
+  try {
+    const db = mongoDb()
+    const r = await db.collection(COLLECTION_SUBMISSIONS).insertOne(doc)
+    const hexId = r.insertedId.toHexString()
+    const saved = await db.collection(COLLECTION_SUBMISSIONS).findOne({ _id: r.insertedId })
+    setImmediate(() => {
+      processSubmissionEvaluation(db, hexId).catch((err) =>
+        console.error('processSubmissionEvaluation', err),
+      )
+    })
+    res.status(200).json({
+      ...submissionToApiDetail(saved),
+      language,
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
 app.get('/challenges/:challenge_id', (req, res) => {
   res.status(200).json(staticChallengeDetail(req.params.challenge_id))
 })
 
-app.get('/submissions/:submission_id', (req, res) => {
-  res.status(200).json(staticSubmission(req.params.submission_id))
+app.get('/submissions/:submission_id', async (req, res) => {
+  let oid
+  try {
+    oid = ObjectId.createFromHexString(req.params.submission_id)
+  } catch {
+    return res.status(404).json({ error: 'not_found' })
+  }
+  try {
+    const doc = await mongoDb().collection(COLLECTION_SUBMISSIONS).findOne({ _id: oid })
+    if (!doc) {
+      return res.status(404).json({ error: 'not_found' })
+    }
+    res.status(200).json(submissionToApiDetail(doc))
+  } catch (e) {
+    console.error(e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
-app.get('/submissions/:submission_id/source', requireBearer, (req, res) => {
+app.get('/submissions/:submission_id/source', requireBearer, async (req, res) => {
   const id = req.params.submission_id
-  // if this was a live challenge, we would omit the source but I am a lazy sob
-  res.status(200).json({
-    id,
-    language: 'javascript',
-    source: 'function solve(input) {\n  return input;\n}\n',
-  })
+  let oid
+  try {
+    oid = ObjectId.createFromHexString(id)
+  } catch {
+    return res.status(404).json({ error: 'not_found' })
+  }
+  try {
+    const doc = await mongoDb().collection(COLLECTION_SUBMISSIONS).findOne({ _id: oid })
+    if (!doc) {
+      return res.status(404).json({ error: 'not_found' })
+    }
+    res.status(200).json({
+      id,
+      language: doc.language,
+      source: doc.source != null ? String(doc.source) : '',
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
 app.get('/leaderboard/global', (req, res) => {
@@ -401,25 +534,32 @@ app.get('/users/:user_id', (req, res) => {
   })
 })
 
-app.get('/users/:user_id/submissions', (req, res) => {
+app.get('/users/:user_id/submissions', async (req, res) => {
   const { page, pageSize } = parseListPagination(req.query)
-  res.status(200).json({
-    items: [
-      {
-        id: 'submission_1',
-        challenge_id: 'Hardest-Challenge',
-        user_id: req.params.user_id,
-        display_name: 'Mockable User',
-        language: 'javascript',
-        status: 'accepted',
-        submitted_at: '9999-9-9T12:00:00.000Z',
-        metrics: { gas: 999, memory_bytes: 999, lines: 999 },
-      },
-    ],
-    page,
-    page_size: pageSize,
-    total: 1,
-  })
+  const uid = req.params.user_id
+  const skip = (page - 1) * pageSize
+  try {
+    const coll = mongoDb().collection(COLLECTION_SUBMISSIONS)
+    const filter = { user_id: uid }
+    const [items, total] = await Promise.all([
+      coll
+        .find(filter)
+        .sort({ submitted_at: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .toArray(),
+      coll.countDocuments(filter),
+    ])
+    res.status(200).json({
+      items: items.map(submissionToApiListItem),
+      page,
+      page_size: pageSize,
+      total,
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 async function start() {
   try {
