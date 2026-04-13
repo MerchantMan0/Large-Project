@@ -202,7 +202,7 @@ end
         }),
       );
 
-      final data = jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(response.body);
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         setState(() {
@@ -211,7 +211,22 @@ end
         return;
       }
 
-      final consoleLines = List<String>.from(data['console'] ?? []);
+      final submissionId = data['id'].toString();
+      Map<String, dynamic> latest = data;
+
+      for (int i = 0; i < 15; i++) {
+        final status = (latest['status'] ?? '').toString();
+        if (status != 'queued' && status != 'running') {
+          break;
+        }
+
+        await Future.delayed(const Duration(seconds: 1));
+        final pollUri = Uri.parse('${GlobalData.apiURL}/submissions/$submissionId');
+        final pollResponse = await http.get(pollUri);
+        latest = jsonDecode(pollResponse.body);
+      }
+
+      final consoleLines = List<String>.from(latest['console'] ?? []);
 
       setState(() {
         runOutput = consoleLines.join('\n');
