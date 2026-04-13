@@ -73,8 +73,7 @@ async function sendVerificationEmail(toEmail, token) {
     from:    process.env.EMAIL_FROM || process.env.SMTP_USER,
     to:      toEmail,
     subject: 'Verify your email',
-    html:    `<h2>Welcome to websiteName!</h2><p>Verify your email (expires in 24h):</p><a href="${link}">${link}</a>`,
-    //idk what name we wanna decide on yet
+    html:    `<h2>Welcome!</h2><p>Verify your email (expires in 24h):</p><a href="${link}">${link}</a>`,
   })
 }
  
@@ -84,8 +83,23 @@ async function sendPasswordResetEmail(toEmail, token) {
     from:    process.env.EMAIL_FROM || process.env.SMTP_USER,
     to:      toEmail,
     subject: 'Reset your password',
-    html:    `<h2>Password Reset</h2><p>Reset your password (expires in 1h):</p><a href="${link}">${link}</a>`,
+    html:    `<h2>Password Reset</h2><p>Reset your password (expires in 1h):</p><a href="${link}">${link}</a><p>If you did not request this, ignore this email.</p>`,
   })
+}
+
+const rateLimitStore = new Map()
+
+//true if allowed, false if rate limited
+function checkRateLimit(key, limit, windowMs) {
+  const now = Date.now()
+  const entry = rateLimitStore.get(key)
+  if (!entry || now - entry.windowStart > windowMs) {
+    rateLimitStore.set(key, { count: 1, windowStart: now })
+    return true
+  }
+  if (entry.count >= limit) return false
+  entry.count++
+  return true
 }
 
 const app = express()
@@ -106,7 +120,7 @@ app.use((req, res, next) => {
   next()
 })
 
-//should work
+//jwt
 function requireBearer(req, res, next) {
   const auth = req.headers.authorization
   if (!auth || !String(auth).startsWith('Bearer ')) {
@@ -151,6 +165,22 @@ function staticChallengeDetail(challengeId) {
     timeout_ms: 30000,
   }
 }
+
+/*
+
+function challengeToApiDetail(doc) {
+  return {
+    id:          doc.id != null ? String(doc.id) : doc._id.toHexString(),
+    title:       doc.title != null ? String(doc.title) : '',
+    description: doc.description != null ? String(doc.description) : '',
+    week:        typeof doc.week === 'number' ? doc.week : 1,
+    status:      doc.status != null ? String(doc.status) : 'open',
+    opens_at:    doc.opens_at ? iso(new Date(doc.opens_at)) : null,
+    closes_at:   doc.closes_at ? iso(new Date(doc.closes_at)) : null,
+    timeout_ms:  typeof doc.timeout_ms === 'number' ? doc.timeout_ms : 15000,
+  }
+}
+*/
 
 /** Same shape as GET /challenges/{challenge_id}/leaderboard */
 function staticLeaderboard(query) {
@@ -213,7 +243,11 @@ app.post('/auth/register', async (req, res) => {
       verification_expires_at: verificationExpiresAt,
     })
  
-    await sendVerificationEmail(email, verificationToken)
+    try {
+      await sendVerificationEmail(email, verificationToken)
+    } catch (mailErr) {
+      console.error('sendVerificationEmail failed:', mailErr)
+    }
  
     return res.status(201).json({
       user_id: result.insertedId.toString(),
@@ -225,7 +259,7 @@ app.post('/auth/register', async (req, res) => {
   }
 })
 
-//this one is new, should work
+//verify email
 app.get('/auth/verify-email', async (req, res) => {
   try {
     const { token } = req.query
@@ -249,7 +283,47 @@ app.get('/auth/verify-email', async (req, res) => {
   }
 })
 
-//should work
+//resend
+app.post('/auth/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body
+    if (!email) return res.status(400).json({ error: 'email is required' })
+ 
+    //rate limit 3 attempts per email per hr
+    if (!checkRateLimit(`resend:${email.toLowerCase()}`, 3, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Too many requests. Please wait before requesting another verification email.' })
+    }
+ 
+    const users = mongoDb().collection('users')
+    const user  = await users.findOne({ email: email.toLowerCase() })
+ 
+    // Always return 200 — don't reveal whether email exists
+    if (!user || user.email_verified) {
+      return res.status(200).json({ message: 'If that email exists and is unverified, a new verification email has been sent.' })
+    }
+ 
+    const verificationToken     = crypto.randomBytes(32).toString('hex')
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+ 
+    await users.updateOne(
+      { _id: user._id },
+      { $set: { verification_token: verificationToken, verification_expires_at: verificationExpiresAt } },
+    )
+ 
+    try {
+      await sendVerificationEmail(user.email, verificationToken)
+    } catch (mailErr) {
+      console.error('resend sendVerificationEmail failed:', mailErr)
+      return res.status(500).json({ error: 'Failed to send email. Check your SMTP config.' })
+    }
+ 
+    return res.status(200).json({ message: 'If that email exists and is unverified, a new verification email has been sent.' })
+  } catch (err) {
+    console.error('POST /auth/resend-verification error:', err)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body
@@ -260,7 +334,7 @@ app.post('/auth/login', async (req, res) => {
     const users = client.db().collection('users')
     const user  = await users.findOne({ email: email.toLowerCase() })
  
-    //prevent timing attacks or smth (idk I skimmed docu a bit)
+    //run bcrypt, prevent timing attacks
     const dummy = '$2b$12$invalidhashfortimingprotection000000000000000000000000'
     const match = await bcrypt.compare(password, user ? user.password : dummy)
  
@@ -284,11 +358,11 @@ app.post('/auth/login', async (req, res) => {
   }
 })
 
-// again does not work
+//works
 app.post('/auth/logout', requireBearer, async (req, res) => {
   try {
     const token = req.headers.authorization.slice(7)
-    await client.db().collection('token_denylist').insertOne({
+    await mongoDb().collection('token_denylist').insertOne({
       token,
       user_id:    req.user.id,
       revoked_at: new Date(),
@@ -301,19 +375,35 @@ app.post('/auth/logout', requireBearer, async (req, res) => {
   }
 })
 
-//also new, should work
+//updated
 app.post('/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body
     if (!email) return res.status(400).json({ error: 'email is required' })
-    const users = client.db().collection('users')
+ 
+    // Rate limit: 3 per hour per email
+    if (!checkRateLimit(`reset:${email.toLowerCase()}`, 3, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Too many requests. Please wait before requesting another reset email.' })
+    }
+ 
+    const users = mongoDb().collection('users')
     const user  = await users.findOne({ email: email.toLowerCase() })
+ 
+    //200 code
     if (user) {
       const resetToken     = crypto.randomBytes(32).toString('hex')
       const resetExpiresAt = new Date(Date.now() + 60 * 60 * 1000)
-      await users.updateOne({ _id: user._id }, { $set: { reset_token: resetToken, reset_expires_at: resetExpiresAt } })
-      await sendPasswordResetEmail(user.email, resetToken)
+      await users.updateOne(
+        { _id: user._id },
+        { $set: { reset_token: resetToken, reset_expires_at: resetExpiresAt } },
+      )
+      try {
+        await sendPasswordResetEmail(user.email, resetToken)
+      } catch (mailErr) {
+        console.error('sendPasswordResetEmail failed:', mailErr)
+      }
     }
+ 
     return res.status(200).json({ message: 'If that email exists, a reset link has been sent.' })
   } catch (err) {
     console.error('POST /auth/forgot-password error:', err)
@@ -343,8 +433,20 @@ app.post('/auth/reset-password', async (req, res) => {
   }
 })
 
-app.get('/challenges/current', (req, res) => {
-  res.status(200).json(staticChallengeDetail('Hardest-Challenge'))
+app.get('/challenges/current', async (req, res) => {
+  try {
+    const coll = mongoDb().collection(COLLECTION_CHALLENGES)
+    //try to find open challenge, or go to most recent
+    const doc = await coll.findOne(
+      { status: 'open' },
+      { sort: { week: -1 } },
+    )
+    if (!doc) return res.status(404).json({ error: 'No current challenge found' })
+    return res.status(200).json(challengeToApiDetail(doc))
+  } catch (e) {
+    console.error('GET /challenges/current error:', e)
+    return res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
 app.get('/challenges', requireBearer, async (req, res) => {
@@ -361,31 +463,74 @@ app.get('/challenges', requireBearer, async (req, res) => {
   try {
     const coll = mongoDb().collection(COLLECTION_CHALLENGES)
     const [rows, total] = await Promise.all([
-      coll
-        .find(filter, {
-          projection: { id: 1, title: 1, week: 1, status: 1 },
-        })
-        .sort({ id: 1 })
+      coll.find(filter, { projection: { id: 1, title: 1, week: 1, status: 1 } })
+        .sort({ week: -1 })
         .skip(skip)
         .limit(pageSize)
         .toArray(),
       coll.countDocuments(filter),
     ])
-    const items = rows.map(challengeToApiListItem).filter(Boolean)
-    res.status(200).json({
-      items,
-      page,
-      page_size: pageSize,
-      total,
-    })
+    res.status(200).json({ items: rows.map(challengeToApiListItem).filter(Boolean), page, page_size: pageSize, total })
   } catch (e) {
-    console.error(e)
+    console.error('GET /challenges error:', e)
     res.status(503).json({ error: 'database_unavailable' })
   }
 })
 
-app.get('/challenges/:challenge_id/leaderboard', (req, res) => {
-  res.status(200).json(staticLeaderboard(req.query))
+app.get('/challenges/:challenge_id/leaderboard', async (req, res) => {
+  const { page, pageSize } = parseListPagination(req.query)
+  const sort   = req.query.sort === 'desc' ? -1 : 1
+  const metric = ['gas', 'memory_bytes', 'lines'].includes(req.query.metric) ? req.query.metric : 'gas'
+  const cid    = req.params.challenge_id
+  const skip   = (page - 1) * pageSize
+ 
+  try {
+    const coll = mongoDb().collection(COLLECTION_SUBMISSIONS)
+ 
+    //sort best from user by metric
+    const pipeline = [
+      { $match: { challenge_id: cid, status: 'accepted' } },
+      { $sort: { [`metrics.${metric}`]: sort, submitted_at: 1 } },
+      //keep best submission
+      { $group: {
+        _id: '$user_id',
+        submission_id: { $first: '$_id' },
+        display_name:  { $first: '$display_name' },
+        metrics:       { $first: '$metrics' },
+        submitted_at:  { $first: '$submitted_at' },
+      }},
+      { $sort: { [`metrics.${metric}`]: sort } },
+      { $skip: skip },
+      { $limit: pageSize },
+    ]
+ 
+    //count
+    const countPipeline = [
+      { $match: { challenge_id: cid, status: 'accepted' } },
+      { $group: { _id: '$user_id' } },
+      { $count: 'total' },
+    ]
+ 
+    const [rows, countResult] = await Promise.all([
+      coll.aggregate(pipeline).toArray(),
+      coll.aggregate(countPipeline).toArray(),
+    ])
+ 
+    const total = countResult.length > 0 ? countResult[0].total : 0
+ 
+    const items = rows.map((row, i) => ({
+      rank:          skip + i + 1,
+      submission_id: row.submission_id.toHexString(),
+      user:          { id: row._id, display_name: row.display_name || row._id },
+      metrics:       normalizeMetrics(row.metrics),
+      submitted_at:  iso(row.submitted_at),
+    }))
+ 
+    res.status(200).json({ items, page, page_size: pageSize, total })
+  } catch (e) {
+    console.error('GET /challenges/:id/leaderboard error:', e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
 app.get('/challenges/:challenge_id/submissions', async (req, res) => {
@@ -396,20 +541,10 @@ app.get('/challenges/:challenge_id/submissions', async (req, res) => {
     const coll = mongoDb().collection(COLLECTION_SUBMISSIONS)
     const filter = { challenge_id: cid }
     const [items, total] = await Promise.all([
-      coll
-        .find(filter)
-        .sort({ submitted_at: -1 })
-        .skip(skip)
-        .limit(pageSize)
-        .toArray(),
+      coll.find(filter).sort({ submitted_at: -1 }).skip(skip).limit(pageSize).toArray(),
       coll.countDocuments(filter),
     ])
-    res.status(200).json({
-      items: items.map(submissionToApiListItem),
-      page,
-      page_size: pageSize,
-      total,
-    })
+    res.status(200).json({ items: items.map(submissionToApiListItem), page, page_size: pageSize, total })
   } catch (e) {
     console.error(e)
     res.status(503).json({ error: 'database_unavailable' })
@@ -418,38 +553,28 @@ app.get('/challenges/:challenge_id/submissions', async (req, res) => {
 
 app.post('/challenges/:challenge_id/submissions', requireBearer, async (req, res) => {
   const userId = req.user && req.user.id != null ? String(req.user.id) : ''
-  if (!userId) {
-    return res.status(401).json({ error: 'Invalid token payload' })
-  }
-  const language =
-    req.body && req.body.language != null
-      ? String(req.body.language)
-      : 'javascript'
-  const source =
-    req.body && req.body.source != null ? String(req.body.source) : ''
-  const defaultDisplay =
-    req.user && req.user.username != null && String(req.user.username).trim() !== ''
-      ? String(req.user.username)
-      : userId
-  const displayName =
-    req.body && req.body.display_name != null && req.body.display_name !== ''
-      ? String(req.body.display_name)
-      : defaultDisplay
-  const lines = source === '' ? 1 : source.split('\n').length
-  const now = new Date()
+  if (!userId) return res.status(401).json({ error: 'Invalid token payload' })
+ 
+  const language    = req.body && req.body.language != null ? String(req.body.language) : 'lua'
+  const source      = req.body && req.body.source != null ? String(req.body.source) : ''
+  const displayName = req.user && req.user.username ? String(req.user.username) : userId
+  const lines       = source === '' ? 1 : source.split('\n').length
+  const now         = new Date()
+ 
   const doc = {
     challenge_id: req.params.challenge_id,
-    user_id: userId,
+    user_id:      userId,
     display_name: displayName,
     language,
     source,
-    status: 'queued',
+    status:       'queued',
     submitted_at: now,
-    metrics: { gas: 0, memory_bytes: 0, lines },
+    metrics:      { gas: 0, memory_bytes: 0, lines },
   }
+ 
   try {
     const db = mongoDb()
-    const r = await db.collection(COLLECTION_SUBMISSIONS).insertOne(doc)
+    const r  = await db.collection(COLLECTION_SUBMISSIONS).insertOne(doc)
     const hexId = r.insertedId.toHexString()
     const saved = await db.collection(COLLECTION_SUBMISSIONS).findOne({ _id: r.insertedId })
     setImmediate(() => {
@@ -457,18 +582,23 @@ app.post('/challenges/:challenge_id/submissions', requireBearer, async (req, res
         console.error('processSubmissionEvaluation', err),
       )
     })
-    res.status(200).json({
-      ...submissionToApiDetail(saved),
-      language,
-    })
+    res.status(200).json({ ...submissionToApiDetail(saved), language })
   } catch (e) {
     console.error(e)
     res.status(503).json({ error: 'database_unavailable' })
   }
 })
 
-app.get('/challenges/:challenge_id', (req, res) => {
-  res.status(200).json(staticChallengeDetail(req.params.challenge_id))
+app.get('/challenges/:challenge_id', async (req, res) => {
+  try {
+    const coll = mongoDb().collection(COLLECTION_CHALLENGES)
+    const doc  = await coll.findOne({ id: req.params.challenge_id })
+    if (!doc) return res.status(404).json({ error: 'Challenge not found' })
+    return res.status(200).json(challengeToApiDetail(doc))
+  } catch (e) {
+    console.error('GET /challenges/:id error:', e)
+    return res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
 app.get('/submissions/:submission_id', async (req, res) => {
@@ -514,16 +644,72 @@ app.get('/submissions/:submission_id/source', requireBearer, async (req, res) =>
   }
 })
 
-app.get('/leaderboard/global', (req, res) => {
-  res.status(200).json(staticLeaderboard(req.query))
+app.get('/leaderboard/global', async (req, res) => {
+  const { page, pageSize } = parseListPagination(req.query)
+  const sort   = req.query.sort === 'desc' ? -1 : 1
+  const metric = ['gas', 'memory_bytes', 'lines'].includes(req.query.metric) ? req.query.metric : 'gas'
+  const skip   = (page - 1) * pageSize
+ 
+  try {
+    const coll = mongoDb().collection(COLLECTION_SUBMISSIONS)
+ 
+    const pipeline = [
+      { $match: { status: 'accepted' } },
+      { $sort: { [`metrics.${metric}`]: sort, submitted_at: 1 } },
+      // Best submission per user across all challenges
+      { $group: {
+        _id:           '$user_id',
+        submission_id: { $first: '$_id' },
+        display_name:  { $first: '$display_name' },
+        metrics:       { $first: '$metrics' },
+        submitted_at:  { $first: '$submitted_at' },
+      }},
+      { $sort: { [`metrics.${metric}`]: sort } },
+      { $skip: skip },
+      { $limit: pageSize },
+    ]
+ 
+    const countPipeline = [
+      { $match: { status: 'accepted' } },
+      { $group: { _id: '$user_id' } },
+      { $count: 'total' },
+    ]
+ 
+    const [rows, countResult] = await Promise.all([
+      coll.aggregate(pipeline).toArray(),
+      coll.aggregate(countPipeline).toArray(),
+    ])
+ 
+    const total = countResult.length > 0 ? countResult[0].total : 0
+ 
+    const items = rows.map((row, i) => ({
+      rank:          skip + i + 1,
+      submission_id: row.submission_id.toHexString(),
+      user:          { id: row._id, display_name: row.display_name || row._id },
+      metrics:       normalizeMetrics(row.metrics),
+      submitted_at:  iso(row.submitted_at),
+    }))
+ 
+    res.status(200).json({ items, page, page_size: pageSize, total })
+  } catch (e) {
+    console.error('GET /leaderboard/global error:', e)
+    res.status(503).json({ error: 'database_unavailable' })
+  }
 })
 
-app.get('/users/me', requireBearer, (req, res) => {
-  res.status(200).json({
-    id: 'usr_me',
-    display_name: 'Mock Me',
-    stats: { submissions: 9, accepted: 99, challenges_solved: 999 },
-  })
+app.get('/users/me', requireBearer, async (req, res) => {
+  try {
+    const user = await mongoDb().collection('users').findOne({ _id: new ObjectId(req.user.id) })
+    if (!user) return res.status(404).json({ error: 'User not found' })
+    return res.status(200).json({
+      id:           user._id.toString(),
+      display_name: user.username,
+      stats:        user.stats || { submissions: 0, accepted: 0, challenges_solved: 0 },
+    })
+  } catch (err) {
+    console.error('GET /users/me error:', err)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
 })
 
 app.get('/users/:user_id', (req, res) => {
@@ -571,6 +757,10 @@ async function start() {
 
     //auto delete expired denylist tokens
     await client.db().collection('token_denylist').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
+
+    //index for leaderboard
+    await mongoDb().collection(COLLECTION_SUBMISSIONS).createIndex({ challenge_id: 1, status: 1, 'metrics.gas': 1 })
+    await mongoDb().collection(COLLECTION_SUBMISSIONS).createIndex({ status: 1, 'metrics.gas': 1 })
 
   } catch (e) {
     console.error('MongoDB connection failed:', e)
