@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_code_editor/flutter_code_editor.dart';
+import 'package:highlight/languages/lua.dart';
 import '../utils/GlobalData.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -30,13 +32,10 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  final TextEditingController _codeController = TextEditingController(
-    text: '''-- Write your Lua solution here
-function solve(input)
-    return input
-end
-''',
-  );
+  final CodeController _codeController = CodeController(
+    text: '''-- Write your Lua solution here''',
+    language: lua,
+  )..popupController.enabled = false;
 
   bool isLoadingChallenge = true;
   bool isSubmitting = false;
@@ -430,24 +429,25 @@ end
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFF334155)),
               ),
-              child: TextField(
-                controller: _codeController,
-                expands: true,
-                maxLines: null,
-                minLines: null,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontFamily: 'monospace',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CodeTheme(
+                  data: CodeThemeData(styles: {}),
+                  child: CodeField(
+                    controller: _codeController,
+                    gutterStyle: GutterStyle.none,
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontFamily: 'monospace',
+                      height: 1.5,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF020617),
+                    ),
+                    expands: true,
+                  ),
                 ),
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.all(16),
-                  border: InputBorder.none,
-                  hintText: 'Write your Lua solution here...',
-                  hintStyle: TextStyle(color: Colors.white38),
-                ),
-                keyboardType: TextInputType.multiline,
-                textAlignVertical: TextAlignVertical.top,
               ),
             ),
           ),
@@ -457,11 +457,8 @@ end
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    _codeController.text = '''-- Write your Lua solution here
-function solve(input)
-    return input
-end
-''';
+                    _codeController.text = '''-- Write your Lua solution here''';
+                    setState(() {});
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
