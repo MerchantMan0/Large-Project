@@ -182,16 +182,16 @@ end
 
     setState(() {
       isRunningCode = true;
-      runOutput = '';
+      runOutput = 'Running code...';
     });
 
     try {
-      final uri = Uri.parse(
+      final submitUri = Uri.parse(
         '${GlobalData.apiURL}/challenges/$challengeId/submissions',
       );
 
-      final response = await http.post(
-        uri,
+      final submitResponse = await http.post(
+        submitUri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ${GlobalData.token}',
@@ -202,23 +202,90 @@ end
         }),
       );
 
-      final data = jsonDecode(response.body);
+      print(submitResponse.statusCode);
+      print(submitResponse.body);
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
+      if (submitResponse.statusCode != 200 &&
+          submitResponse.statusCode != 201) {
         setState(() {
-          runOutput = '';
+          runOutput = submitResponse.body;
         });
         return;
       }
 
-      final consoleLines = List<String>.from(data['console'] ?? []);
+      final submitData = jsonDecode(submitResponse.body);
+      final submissionId = (submitData['id'] ?? '').toString();
+
+      if (submissionId.isEmpty) {
+        setState(() {
+          runOutput = 'No submission id returned.';
+        });
+        return;
+      }
+
+      Map<String, dynamic> detailsData = {};
+      bool finished = false;
+
+      for (int i = 0; i < 10; i++) {
+        await Future.delayed(const Duration(milliseconds: 700));
+
+        final detailsUri = Uri.parse(
+          '${GlobalData.apiURL}/submissions/$submissionId',
+        );
+
+        final detailsResponse = await http.get(
+          detailsUri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${GlobalData.token}',
+          },
+        );
+
+        print(detailsResponse.statusCode);
+        print(detailsResponse.body);
+
+        if (detailsResponse.statusCode != 200) {
+          setState(() {
+            runOutput = detailsResponse.body;
+          });
+          return;
+        }
+
+        detailsData = jsonDecode(detailsResponse.body);
+
+        final status = (detailsData['status'] ?? '').toString().toLowerCase();
+        final consoleLines = (detailsData['console'] as List? ?? [])
+            .map((line) => line.toString())
+            .toList();
+
+        if (consoleLines.isNotEmpty ||
+            status == 'accepted' ||
+            status == 'finished' ||
+            status == 'completed' ||
+            status == 'failed' ||
+            status == 'rejected' ||
+            status == 'error') {
+          finished = true;
+          break;
+        }
+      }
+
+      final consoleLines = (detailsData['console'] as List? ?? [])
+          .map((line) => line.toString())
+          .toList();
 
       setState(() {
-        runOutput = consoleLines.join('\n');
+        if (consoleLines.isNotEmpty) {
+          runOutput = consoleLines.join('\n');
+        } else if (finished) {
+          runOutput = 'No output.';
+        } else {
+          runOutput = 'Still processing. Try again in a moment.';
+        }
       });
     } catch (e) {
       setState(() {
-        runOutput = '';
+        runOutput = e.toString();
       });
     } finally {
       if (mounted) {
