@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../utils/GlobalData.dart';
 
-class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key});
+class ForgotScreen extends StatefulWidget {
+  const ForgotScreen({super.key});
 
   @override
-  State<RegistrationScreen> createState() => _RegistrationScreenState();
+  State<ForgotScreen> createState() => _ForgotScreenState();
 }
 
-class _RegistrationScreenState extends State<RegistrationScreen> {
+class _ForgotScreenState extends State<ForgotScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
@@ -31,76 +31,9 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   String message = '';
-
-  final TextEditingController usernameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-
   bool isLoading = false;
 
-  Future<void> registerUser() async {
-    final username = usernameController.text.trim();
-    final email = emailController.text.trim();
-    final password = passwordController.text;
-
-    if (username.isEmpty || email.isEmpty || password.isEmpty) {
-      setState(() {
-        message = 'Please fill in username, email, and password.';
-      });
-      return;
-    }
-
-    final uri = Uri.parse('${GlobalData.apiURL}/auth/register');
-
-    setState(() {
-      isLoading = true;
-      message = '';
-    });
-
-    try {
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'username': username,
-          'email': email,
-          'password': password,
-        }),
-      );
-
-      final Map data = jsonDecode(response.body);
-
-      if (response.statusCode == 201) {
-        setState(() {
-          message = data['message'] ?? 'Registered successfully.';
-        });
-
-        if (!mounted) return;
-
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/login');
-          }
-        });
-      } else {
-        setState(() {
-          message = data['error'] ?? 'Registration failed.';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        message = 'Could not connect to server.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    }
-  }
+  final TextEditingController emailController = TextEditingController();
 
   InputDecoration _buildInputDecoration({
     required String label,
@@ -129,11 +62,61 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  Future<void> sendResetLink() async {
+    final email = emailController.text.trim();
+
+    if (email.isEmpty) {
+      setState(() {
+        message = 'Please enter your email.';
+      });
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      message = '';
+    });
+
+    try {
+      final uri = Uri.parse('${GlobalData.apiURL}/auth/forgot-password');
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() {
+          message = data['message'] ?? 'Password reset link sent.';
+        });
+      } else {
+        setState(() {
+          message = data['error'] ?? 'Failed to send reset link.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        message = 'Could not connect to server.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
-    usernameController.dispose();
     emailController.dispose();
-    passwordController.dispose();
     super.dispose();
   }
 
@@ -162,23 +145,23 @@ class _MainPageState extends State<MainPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(
-                  Icons.person_add_alt_1_rounded,
+                  Icons.lock_reset,
                   color: Colors.white,
                   size: 44,
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Create Account',
+                  'Forgot Password',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Register to access weekly challenges and Lua submissions.',
+                  'Enter your email and we will send you a password reset link.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,
@@ -205,16 +188,6 @@ class _MainPageState extends State<MainPage> {
                   const SizedBox(height: 16),
                 ],
                 TextField(
-                  controller: usernameController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _buildInputDecoration(
-                    label: 'Username',
-                    hint: 'Enter your username',
-                    icon: Icons.person_outline,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
                   controller: emailController,
                   style: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.emailAddress,
@@ -224,22 +197,11 @@ class _MainPageState extends State<MainPage> {
                     icon: Icons.email_outlined,
                   ),
                 ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _buildInputDecoration(
-                    label: 'Password',
-                    hint: 'Enter your password',
-                    icon: Icons.lock_outline,
-                  ),
-                ),
                 const SizedBox(height: 22),
                 SizedBox(
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: isLoading ? null : registerUser,
+                    onPressed: isLoading ? null : sendResetLink,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
@@ -254,7 +216,7 @@ class _MainPageState extends State<MainPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                         : const Text(
-                      'Register',
+                      'Send Reset Link',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -265,10 +227,10 @@ class _MainPageState extends State<MainPage> {
                 const SizedBox(height: 14),
                 TextButton(
                   onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/login');
+                    Navigator.pop(context);
                   },
                   child: const Text(
-                    'Already have an account? Back to login',
+                    'Back to Login',
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),
