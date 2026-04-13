@@ -399,29 +399,6 @@ class _MainPageState extends State<MainPage> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.code, color: Colors.white70, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'Lua Editor',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -457,7 +434,7 @@ class _MainPageState extends State<MainPage> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    _codeController.text = '''-- Write your Lua solution here''';
+                    _codeController.text = '''''';
                     setState(() {});
                   },
                   style: OutlinedButton.styleFrom(
@@ -498,29 +475,6 @@ class _MainPageState extends State<MainPage> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.play_circle_outline, color: Colors.white70, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'Output',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
           Expanded(
             child: Container(
               width: double.infinity,

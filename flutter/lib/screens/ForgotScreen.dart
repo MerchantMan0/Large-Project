@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../utils/GlobalData.dart';
-import '../utils/getAPI.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class ForgotScreen extends StatefulWidget {
+  const ForgotScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<ForgotScreen> createState() => _ForgotScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _ForgotScreenState extends State<ForgotScreen> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
@@ -31,16 +31,9 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   String message = '';
-  String newMessageText = '';
-  String email = '';
-  String password = '';
   bool isLoading = false;
 
-  void changeText() {
-    setState(() {
-      message = newMessageText;
-    });
-  }
+  final TextEditingController emailController = TextEditingController();
 
   InputDecoration _buildInputDecoration({
     required String label,
@@ -69,51 +62,62 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Future<void> loginUser() async {
-    newMessageText = '';
-    changeText();
+  Future<void> sendResetLink() async {
+    final email = emailController.text.trim();
 
-    setState(() {
-      isLoading = true;
-    });
-
-    String payload = json.encode({
-      "email": email.trim(),
-      "password": password.trim(),
-    });
-
-    dynamic jsonObject;
-
-    try {
-      String url = '${GlobalData.apiURL}/auth/login';
-      String ret = await CardsData.getJson(url, payload);
-      jsonObject = json.decode(ret);
-    } catch (e) {
-      newMessageText = e.toString();
-      changeText();
+    if (email.isEmpty) {
       setState(() {
-        isLoading = false;
+        message = 'Please enter your email.';
       });
       return;
     }
 
-    String? token = jsonObject["access_token"];
+    setState(() {
+      isLoading = true;
+      message = '';
+    });
 
-    if (token == null || token.isEmpty) {
-      newMessageText = jsonObject["error"] ?? "Incorrect email/password";
-      changeText();
-    } else {
-      GlobalData.token = token;
+    try {
+      final uri = Uri.parse('${GlobalData.apiURL}/auth/forgot-password');
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() {
+          message = data['message'] ?? 'Password reset link sent.';
+        });
+      } else {
+        setState(() {
+          message = data['error'] ?? 'Failed to send reset link.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        message = 'Could not connect to server.';
+      });
+    } finally {
       if (mounted) {
-        Navigator.pushNamed(context, '/menu');
+        setState(() {
+          isLoading = false;
+        });
       }
     }
+  }
 
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
-    }
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
   }
 
   @override
@@ -141,23 +145,23 @@ class _MainPageState extends State<MainPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(
-                  Icons.terminal_rounded,
+                  Icons.lock_reset,
                   color: Colors.white,
                   size: 44,
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Lua Wordle',
+                  'Forgot Password',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Sign in to play weekly Lua coding challenges.',
+                  'Enter your email and we will send you a password reset link.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,
@@ -184,9 +188,7 @@ class _MainPageState extends State<MainPage> {
                   const SizedBox(height: 16),
                 ],
                 TextField(
-                  onChanged: (text) {
-                    email = text;
-                  },
+                  controller: emailController,
                   style: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.emailAddress,
                   decoration: _buildInputDecoration(
@@ -195,24 +197,11 @@ class _MainPageState extends State<MainPage> {
                     icon: Icons.email_outlined,
                   ),
                 ),
-                const SizedBox(height: 14),
-                TextField(
-                  obscureText: true,
-                  onChanged: (text) {
-                    password = text;
-                  },
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _buildInputDecoration(
-                    label: 'Password',
-                    hint: 'Enter your password',
-                    icon: Icons.lock_outline,
-                  ),
-                ),
                 const SizedBox(height: 22),
                 SizedBox(
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: isLoading ? null : loginUser,
+                    onPressed: isLoading ? null : sendResetLink,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
@@ -227,7 +216,7 @@ class _MainPageState extends State<MainPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                         : const Text(
-                      'Login',
+                      'Send Reset Link',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -238,19 +227,10 @@ class _MainPageState extends State<MainPage> {
                 const SizedBox(height: 14),
                 TextButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/forgot');
+                    Navigator.pop(context);
                   },
                   child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/registration');
-                  },
-                  child: const Text(
-                    'Need an account? Register',
+                    'Back to Login',
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),
