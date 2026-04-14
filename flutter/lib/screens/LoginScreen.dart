@@ -86,7 +86,7 @@ class _MainPageState extends State<MainPage> {
 
     try {
       String url = '${GlobalData.apiURL}/auth/login';
-      String ret = await CardsData.getJson(url, payload);
+      String ret = await ApiService.getJson(url, payload);
       jsonObject = json.decode(ret);
     } catch (e) {
       newMessageText = e.toString();

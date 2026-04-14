@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-class CardsData {
+class ApiService {
   static Future<String> getJson(String url, String outgoing) async
   {
     String ret = "";

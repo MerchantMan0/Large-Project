@@ -251,7 +251,6 @@ class _MainPageState extends State<MainPage> {
             runSpacing: 8,
             children: [
               _chip('Status', (submission['status'] ?? 'unknown').toString()),
-              _chip('Language', (submission['language'] ?? 'unknown').toString()),
               _chip('Gas', (metrics['gas'] ?? '-').toString()),
               _chip('Memory', (metrics['memory_bytes'] ?? '-').toString()),
               _chip('Lines', (metrics['lines'] ?? '-').toString()),
