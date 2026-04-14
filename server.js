@@ -481,43 +481,52 @@ app.get('/challenges/:challenge_id/leaderboard', async (req, res) => {
   const { page, pageSize } = parseListPagination(req.query)
   const sort   = req.query.sort === 'desc' ? -1 : 1
   const metric = ['gas', 'memory_bytes', 'lines'].includes(req.query.metric) ? req.query.metric : 'gas'
+  const search = req.query.search ? String(req.query.search).trim() : ''
   const cid    = req.params.challenge_id
   const skip   = (page - 1) * pageSize
- 
+
   try {
     const coll = mongoDb().collection(COLLECTION_SUBMISSIONS)
- 
-    //sort best from user by metric
+
     const pipeline = [
       { $match: { challenge_id: cid, status: 'accepted' } },
       { $sort: { [`metrics.${metric}`]: sort, submitted_at: 1 } },
-      //keep best submission
       { $group: {
-        _id: '$user_id',
+        _id:           '$user_id',
         submission_id: { $first: '$_id' },
         display_name:  { $first: '$display_name' },
         metrics:       { $first: '$metrics' },
         submitted_at:  { $first: '$submitted_at' },
       }},
       { $sort: { [`metrics.${metric}`]: sort } },
-      { $skip: skip },
-      { $limit: pageSize },
     ]
- 
+
+    //search filter (metric or display name)
+    if (search) {
+      const numeric = parseFloat(search)
+      const conditions = [
+        { display_name: { $regex: search, $options: 'i' } },
+      ]
+      //numeric metrics, change later if we wanna
+      if (!isNaN(numeric)) {
+        conditions.push({ 'metrics.gas':numeric })
+        conditions.push({ 'metrics.memory_bytes':numeric })
+        conditions.push({ 'metrics.lines':numeric })
+      }
+      pipeline.push({ $match: { $or: conditions } })
+    }
+
     //count
-    const countPipeline = [
-      { $match: { challenge_id: cid, status: 'accepted' } },
-      { $group: { _id: '$user_id' } },
-      { $count: 'total' },
-    ]
- 
+    const countPipeline = [...pipeline, { $count: 'total' }]
+    pipeline.push({ $skip: skip }, { $limit: pageSize })
+
     const [rows, countResult] = await Promise.all([
       coll.aggregate(pipeline).toArray(),
       coll.aggregate(countPipeline).toArray(),
     ])
- 
+
     const total = countResult.length > 0 ? countResult[0].total : 0
- 
+
     const items = rows.map((row, i) => ({
       rank:          skip + i + 1,
       submission_id: row.submission_id.toHexString(),
@@ -525,7 +534,7 @@ app.get('/challenges/:challenge_id/leaderboard', async (req, res) => {
       metrics:       normalizeMetrics(row.metrics),
       submitted_at:  iso(row.submitted_at),
     }))
- 
+
     res.status(200).json({ items, page, page_size: pageSize, total })
   } catch (e) {
     console.error('GET /challenges/:id/leaderboard error:', e)
@@ -648,15 +657,15 @@ app.get('/leaderboard/global', async (req, res) => {
   const { page, pageSize } = parseListPagination(req.query)
   const sort   = req.query.sort === 'desc' ? -1 : 1
   const metric = ['gas', 'memory_bytes', 'lines'].includes(req.query.metric) ? req.query.metric : 'gas'
+  const search = req.query.search ? String(req.query.search).trim() : ''
   const skip   = (page - 1) * pageSize
- 
+
   try {
     const coll = mongoDb().collection(COLLECTION_SUBMISSIONS)
- 
+
     const pipeline = [
       { $match: { status: 'accepted' } },
       { $sort: { [`metrics.${metric}`]: sort, submitted_at: 1 } },
-      // Best submission per user across all challenges
       { $group: {
         _id:           '$user_id',
         submission_id: { $first: '$_id' },
@@ -665,23 +674,31 @@ app.get('/leaderboard/global', async (req, res) => {
         submitted_at:  { $first: '$submitted_at' },
       }},
       { $sort: { [`metrics.${metric}`]: sort } },
-      { $skip: skip },
-      { $limit: pageSize },
     ]
- 
-    const countPipeline = [
-      { $match: { status: 'accepted' } },
-      { $group: { _id: '$user_id' } },
-      { $count: 'total' },
-    ]
- 
+
+    if (search) {
+      const numeric = parseFloat(search)
+      const conditions = [
+        { display_name: { $regex: search, $options: 'i' } },
+      ]
+      if (!isNaN(numeric)) {
+        conditions.push({ 'metrics.gas':          numeric })
+        conditions.push({ 'metrics.memory_bytes': numeric })
+        conditions.push({ 'metrics.lines':        numeric })
+      }
+      pipeline.push({ $match: { $or: conditions } })
+    }
+
+    const countPipeline = [...pipeline, { $count: 'total' }]
+    pipeline.push({ $skip: skip }, { $limit: pageSize })
+
     const [rows, countResult] = await Promise.all([
       coll.aggregate(pipeline).toArray(),
       coll.aggregate(countPipeline).toArray(),
     ])
- 
+
     const total = countResult.length > 0 ? countResult[0].total : 0
- 
+
     const items = rows.map((row, i) => ({
       rank:          skip + i + 1,
       submission_id: row.submission_id.toHexString(),
@@ -689,7 +706,7 @@ app.get('/leaderboard/global', async (req, res) => {
       metrics:       normalizeMetrics(row.metrics),
       submitted_at:  iso(row.submitted_at),
     }))
- 
+
     res.status(200).json({ items, page, page_size: pageSize, total })
   } catch (e) {
     console.error('GET /leaderboard/global error:', e)
