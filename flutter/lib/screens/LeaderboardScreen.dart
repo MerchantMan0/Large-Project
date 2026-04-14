@@ -417,7 +417,7 @@ class _MainPageState extends State<MainPage>
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search, color: Colors.white70),
-              hintText: 'Search by username or user id',
+              hintText: 'Search by username',
               hintStyle: const TextStyle(color: Colors.white38),
               filled: true,
               fillColor: const Color(0xFF0F172A),
