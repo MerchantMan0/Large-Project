@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import { registerLua } from "./luaLanguage";
 import "./App.css";
+import { API_BASE } from "./apiBase.ts";
 
 function MainPage() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ function MainPage() {
 
     try {
       const res = await fetch(
-        "http://localhost:5000/challenges/Hardest-Challenge/submissions",
+        `${API_BASE}/challenges/Hardest-Challenge/submissions`,
         {
           method: "POST",
           headers: {
