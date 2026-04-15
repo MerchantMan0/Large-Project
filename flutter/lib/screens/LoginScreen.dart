@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../utils/GlobalData.dart';
-import '../utils/getAPI.dart';
+import '../utils/GetAPI.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
