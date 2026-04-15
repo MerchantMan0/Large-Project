@@ -102,6 +102,75 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  Future<void> _pollAndUpdateOutput(String submissionId) async {
+    Map<String, dynamic> detailsData = {};
+    bool finished = false;
+
+    for (int i = 0; i < 10; i++) {
+      await Future.delayed(const Duration(milliseconds: 700));
+
+      if (!mounted) return;
+
+      final detailsUri = Uri.parse(
+        '${GlobalData.apiURL}/submissions/$submissionId',
+      );
+
+      final detailsResponse = await http.get(
+        detailsUri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${GlobalData.token}',
+        },
+      );
+
+      print(detailsResponse.statusCode);
+      print(detailsResponse.body);
+
+      if (detailsResponse.statusCode != 200) {
+        if (mounted) {
+          setState(() {
+            runOutput = detailsResponse.body;
+          });
+        }
+        return;
+      }
+
+      detailsData = jsonDecode(detailsResponse.body);
+
+      final status = (detailsData['status'] ?? '').toString().toLowerCase();
+      final consoleLines = (detailsData['console'] as List? ?? [])
+          .map((line) => line.toString())
+          .toList();
+
+      if (consoleLines.isNotEmpty ||
+          status == 'accepted' ||
+          status == 'finished' ||
+          status == 'completed' ||
+          status == 'failed' ||
+          status == 'rejected' ||
+          status == 'error') {
+        finished = true;
+        break;
+      }
+    }
+
+    final consoleLines = (detailsData['console'] as List? ?? [])
+        .map((line) => line.toString())
+        .toList();
+
+    if (mounted) {
+      setState(() {
+        if (consoleLines.isNotEmpty) {
+          runOutput = consoleLines.join('\n');
+        } else if (finished) {
+          runOutput = 'No output.';
+        } else {
+          runOutput = 'Still processing. Try again in a moment.';
+        }
+      });
+    }
+  }
+
   Future<void> submitLuaCode() async {
     if (challengeId.isEmpty) {
       setState(() {
@@ -142,10 +211,15 @@ class _MainPageState extends State<MainPage> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final submissionId = (data['id'] ?? '').toString();
         setState(() {
           message =
-          'Submission successful! Submission ID: ${data['id'] ?? 'unknown'}';
+              'Submission successful! Submission ID: ${data['id'] ?? 'unknown'}';
+          runOutput = 'Running...';
         });
+        if (submissionId.isNotEmpty) {
+          _pollAndUpdateOutput(submissionId);
+        }
       } else {
         setState(() {
           message = data['error'] ?? 'Submission failed.';
@@ -222,66 +296,7 @@ class _MainPageState extends State<MainPage> {
         return;
       }
 
-      Map<String, dynamic> detailsData = {};
-      bool finished = false;
-
-      for (int i = 0; i < 10; i++) {
-        await Future.delayed(const Duration(milliseconds: 700));
-
-        final detailsUri = Uri.parse(
-          '${GlobalData.apiURL}/submissions/$submissionId',
-        );
-
-        final detailsResponse = await http.get(
-          detailsUri,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${GlobalData.token}',
-          },
-        );
-
-        print(detailsResponse.statusCode);
-        print(detailsResponse.body);
-
-        if (detailsResponse.statusCode != 200) {
-          setState(() {
-            runOutput = detailsResponse.body;
-          });
-          return;
-        }
-
-        detailsData = jsonDecode(detailsResponse.body);
-
-        final status = (detailsData['status'] ?? '').toString().toLowerCase();
-        final consoleLines = (detailsData['console'] as List? ?? [])
-            .map((line) => line.toString())
-            .toList();
-
-        if (consoleLines.isNotEmpty ||
-            status == 'accepted' ||
-            status == 'finished' ||
-            status == 'completed' ||
-            status == 'failed' ||
-            status == 'rejected' ||
-            status == 'error') {
-          finished = true;
-          break;
-        }
-      }
-
-      final consoleLines = (detailsData['console'] as List? ?? [])
-          .map((line) => line.toString())
-          .toList();
-
-      setState(() {
-        if (consoleLines.isNotEmpty) {
-          runOutput = consoleLines.join('\n');
-        } else if (finished) {
-          runOutput = 'No output.';
-        } else {
-          runOutput = 'Still processing. Try again in a moment.';
-        }
-      });
+      await _pollAndUpdateOutput(submissionId);
     } catch (e) {
       setState(() {
         runOutput = e.toString();
