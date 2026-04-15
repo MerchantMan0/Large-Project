@@ -13,7 +13,9 @@ const crypto = require('crypto')
 
 const url = process.env.MONGODB_URI
 
-const client = new MongoClient(url)
+const client = new MongoClient(url, {
+  dbName: process.env.MONGODB_DB || 'Large-Project',
+})
 
 function mongoDb() {
   return client.db(process.env.MONGODB_DB || undefined)
@@ -166,8 +168,6 @@ function staticChallengeDetail(challengeId) {
   }
 }
 
-/*
-
 function challengeToApiDetail(doc) {
   return {
     id:          doc.id != null ? String(doc.id) : doc._id.toHexString(),
@@ -180,7 +180,6 @@ function challengeToApiDetail(doc) {
     timeout_ms:  typeof doc.timeout_ms === 'number' ? doc.timeout_ms : 15000,
   }
 }
-*/
 
 /** Same shape as GET /challenges/{challenge_id}/leaderboard */
 function staticLeaderboard(query) {
@@ -716,6 +715,9 @@ app.get('/leaderboard/global', async (req, res) => {
 
 app.get('/users/me', requireBearer, async (req, res) => {
   try {
+    if (!ObjectId.isValid(req.user.id)) {
+      return res.status(401).json({ error: 'Invalid token payload' })
+    }
     const user = await mongoDb().collection('users').findOne({ _id: new ObjectId(req.user.id) })
     if (!user) return res.status(404).json({ error: 'User not found' })
     return res.status(200).json({
@@ -729,12 +731,23 @@ app.get('/users/me', requireBearer, async (req, res) => {
   }
 })
 
-app.get('/users/:user_id', (req, res) => {
-  res.status(200).json({
-    id: req.params.user_id,
-    display_name: 'Mock User',
-    stats: { submissions: 8, accepted: 88, challenges_solved: 888 },
-  })
+app.get('/users/:user_id', async (req, res) => {
+  try {
+    const userId = req.params.user_id
+    if (!ObjectId.isValid(userId)) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+    const user = await mongoDb().collection('users').findOne({ _id: new ObjectId(userId) })
+    if (!user) return res.status(404).json({ error: 'User not found' })
+    return res.status(200).json({
+      id:           user._id.toString(),
+      display_name: user.username,
+      stats:        user.stats,
+    })
+  } catch (err) {
+    console.error('GET /users/:user_id error:', err)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
 })
 
 app.get('/users/:user_id/submissions', async (req, res) => {
