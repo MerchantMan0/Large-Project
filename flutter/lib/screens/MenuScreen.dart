@@ -603,9 +603,24 @@ class _MainPageState extends State<MainPage> {
               width: double.infinity,
               color: const Color(0xFF1D4ED8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Text(
-                message,
-                style: const TextStyle(color: Colors.white),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        message = '';
+                      });
+                    },
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    tooltip: 'Dismiss',
+                  ),
+                ],
               ),
             ),
           Expanded(
