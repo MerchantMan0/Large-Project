@@ -214,7 +214,7 @@ class _MainPageState extends State<MainPage> {
         final submissionId = (data['id'] ?? '').toString();
         setState(() {
           message =
-              'Submission successful! Submission ID: ${data['id'] ?? 'unknown'}';
+          'Submission successful! Submission ID: ${data['id'] ?? 'unknown'}';
           runOutput = 'Running...';
         });
         if (submissionId.isNotEmpty) {
@@ -449,8 +449,10 @@ class _MainPageState extends State<MainPage> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    _codeController.text = '''''';
-                    setState(() {});
+                    _codeController.text = '''-- Write your Lua solution here''';
+                    setState(() {
+                      runOutput = 'Press "Run Code" to see the API response here.';
+                    });
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
