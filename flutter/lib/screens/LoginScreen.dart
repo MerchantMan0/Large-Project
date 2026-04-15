@@ -147,7 +147,7 @@ class _MainPageState extends State<MainPage> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Lua Wordle',
+                  'Lua Leetcode',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
