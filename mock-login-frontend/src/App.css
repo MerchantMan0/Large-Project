@@ -83,6 +83,11 @@
 }
 
 /* ACCOUNT PAGE STYLING */
+.user-id {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
 .account-page {
   display: flex;
   justify-content: center;
@@ -96,7 +101,7 @@
   background: #121a2b;
   border: 1px solid #1f2a44;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem;
   color: white;
 }
 
@@ -106,35 +111,60 @@
   border-radius: 10px;
   margin-bottom: 1rem;
   background: #0e1426;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;      
+  justify-content: center;  
+  text-align: center;       
 }
 
-.profile-box h3 {
-  margin-bottom: 0.3rem;
-}
-
+/* STATS GRID */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 1rem;
 }
 
-.stat {
+/* INDIVIDUAL STAT CARD */
+.stat-card {
+  background: #0e1426;
+  border: 1px solid #1f2a44;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: 0.2s ease;
+}
+
+.stat-card:hover {
+  background: #16213a;
+  border-color: #2a3a5a;
+}
+
+/* NUMBER */
+.stat-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: #3b82f6;
+}
+
+/* LABEL */
+.stat-card p {
+  margin-top: 5px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.submission-card {
   background: #0e1426;
   border: 1px solid #1f2a44;
   border-radius: 10px;
   padding: 1rem;
-  text-align: center;
-}
-
-.stat h4 {
-  font-size: 1.2rem;
-  margin-bottom: 5px;
-  color: #3b82f6;
-}
-
-.stat p {
-  font-size: 0.85rem;
-  color: #94a3b8;
+  margin-top: 1rem;
 }
 
 /* MAIN PAGE STYLING */
@@ -276,6 +306,19 @@
   text-align: center;
   margin-top: 1rem;
   color: #ff6b6b;
+}
+
+.forgot-password {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  cursor: pointer;
+  text-align: center;
+  transition: 0.2s ease;
+}
+
+.forgot-password:hover {
+  color: #3b82f6;
 }
 
 .register {

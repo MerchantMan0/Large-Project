@@ -12,6 +12,9 @@ import MainPage from "./MainPage.tsx";
 import Account from "./Account.tsx";
 import Leaderboard from "./Leaderboard.tsx";
 import VerifyEmail from "./VerifyEmail.tsx";
+import ForgotPassword from "./ForgotPassword.tsx";
+import ResetPassword from "./ResetPassword.tsx";
+
 import "./App.css";
 
 type ProtectedRouteProps = {
@@ -52,6 +55,8 @@ function App() {
 
         <Route path="/account" element={<Account />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

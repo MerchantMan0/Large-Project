@@ -36,15 +36,18 @@ type SubmissionResponse = {
 function Account() {
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/");
+  };
+
   const [user, setUser] = useState<User | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
 
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingSubs, setLoadingSubs] = useState(true);
 
-  // -------------------------
-  // FETCH USER PROFILE
-  // -------------------------
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -68,9 +71,6 @@ function Account() {
     fetchUser();
   }, []);
 
-  // -------------------------
-  // FETCH SUBMISSIONS
-  // -------------------------
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
@@ -97,85 +97,88 @@ function Account() {
 
   return (
     <div className="app-grid">
-      {/* HEADER */}
       <header className="header">
         <h1>Lua Leetcode</h1>
 
         <nav className="header-nav">
           <button onClick={() => navigate("/main")}>Home</button>
-          <button onClick={() => navigate("/leaderboard")}>
-            Leaderboard
+          <button onClick={() => navigate("/leaderboard")}>Leaderboard</button>
+          <button style={{ backgroundColor: "lightcoral" }} onClick={handleLogout}>
+            Logout
           </button>
         </nav>
       </header>
 
       <main className="leaderboard-page">
-        {/* USER CARD */}
         <div className="account-card">
-          <h2>👤 Account</h2>
+          <h2>Account</h2>
 
           {loadingUser ? (
             <p style={{ color: "#cbd5e1" }}>Loading user...</p>
           ) : user ? (
-            <div>
-              <p>
-                <strong>Name:</strong> {user.display_name}
-              </p>
+            <>
+              <div className="profile-box">
+                <h2>{user.display_name}</h2>
+                <p className="user-id">User ID: {user.id}</p>
+              </div>
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <h3>{user.stats.submissions}</h3>
+                  <p>Submissions</p>
+                </div>
 
-              <p>
-                <strong>Submissions:</strong> {user.stats.submissions}
-              </p>
+                <div className="stat-card">
+                  <h3>{user.stats.accepted}</h3>
+                  <p>Accepted</p>
+                </div>
 
-              <p>
-                <strong>Accepted:</strong> {user.stats.accepted}
-              </p>
-
-              <p>
-                <strong>Challenges Solved:</strong>{" "}
-                {user.stats.challenges_solved}
-              </p>
-            </div>
+                <div className="stat-card">
+                  <h3>{user.stats.challenges_solved}</h3>
+                  <p>Solved</p>
+                </div>
+              </div>
+            </>
           ) : (
             <p>Failed to load user.</p>
           )}
-        </div>
+          <div className="profile-box">
+            <h2>Submission History</h2>
 
-        {/* SUBMISSIONS TABLE */}
-        <div className="account-card">
-          <h2>📜 Submission History</h2>
-
-          {loadingSubs ? (
-            <p style={{ color: "#cbd5e1" }}>Loading submissions...</p>
-          ) : (
-            <table className="leaderboard-table">
-              <thead>
-                <tr>
-                  <th>Challenge</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Gas</th>
-                  <th>Memory</th>
-                  <th>Lines</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {submissions.map((sub) => (
-                  <tr key={sub.id}>
-                    <td>{sub.challenge_id}</td>
-                    <td>{sub.status}</td>
-                    <td>
-                      {new Date(sub.submitted_at).toLocaleDateString()}
-                    </td>
-                    <td>{sub.metrics.gas}</td>
-                    <td>{sub.metrics.memory_bytes}</td>
-                    <td>{sub.metrics.lines}</td>
+            {loadingSubs ? (
+              <p style={{ color: "#cbd5e1" }}>Loading submissions...</p>
+            ) : (
+              <table className="leaderboard-table">
+                <thead>
+                  <tr>
+                    <th>Challenge</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Gas</th>
+                    <th>Memory</th>
+                    <th>Lines</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+
+                <tbody>
+                  {submissions.map((sub) => (
+                    <tr key={sub.id}>
+                      <td>{sub.challenge_id}</td>
+                      <td>{sub.status}</td>
+                      <td>
+                        {new Date(sub.submitted_at).toLocaleDateString()}
+                      </td>
+                      <td>{sub.metrics.gas}</td>
+                      <td>{sub.metrics.memory_bytes}</td>
+                      <td>{sub.metrics.lines}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
+
+        
       </main>
     </div>
   );
