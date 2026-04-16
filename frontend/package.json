@@ -8,15 +8,12 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^13.5.0",
-    "codemirror": "^5.65.20",
-    "fengari-web": "^0.1.4",
-    "react": "^19.2.4",
-    "react-codemirror2": "^7.3.0",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^6.30.1",
+    "@testing-library/user-event": "^14.6.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.14.1",
     "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^5.2.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -45,5 +42,13 @@
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3"
+  },
+  "overrides": {
+    "dompurify": "^3.3.4",
+    "@tootallnate/once": "^3.0.1",
+    "underscore": "^1.13.7",
+    "serialize-javascript": "^7.0.5",
+    "postcss": "^8.4.47",
+    "nth-check": "^2.1.1"
   }
 }
