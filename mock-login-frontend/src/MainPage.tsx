@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import { API_BASE } from "./apiBase.ts";
@@ -14,8 +14,17 @@ type Submission = {
   language: string;
 };
 
+type Challenge = {
+  id: string;
+  title?: string;
+  description?: string;
+};
+
 function MainPage() {
   const navigate = useNavigate();
+
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
 
   const [code, setCode] = useState<string>(
     `-- Type Lua code here\nprint("Hello World")`
@@ -24,10 +33,23 @@ function MainPage() {
   const [output, setOutput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
-  // -----------------------------
-  // POLLING FUNCTION
-  // -----------------------------
-  const pollSubmission = async (submissionId: string) => {
+  useEffect(() => {
+    const fetchChallenge = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/challenges/current`);
+        const data = await res.json();
+
+        setChallengeId(data.id);
+        setChallenge(data);
+      } catch (err) {
+        console.error("Failed to load challenge", err);
+      }
+    };
+
+    fetchChallenge();
+  }, []);
+
+  const pollSubmission = (submissionId: string) => {
     const token = localStorage.getItem("token");
 
     const interval = setInterval(async () => {
@@ -48,7 +70,6 @@ function MainPage() {
             JSON.stringify(data.metrics, null, 2)
         );
 
-        // stop polling when done
         if (data.status !== "queued") {
           clearInterval(interval);
           setLoading(false);
@@ -58,13 +79,12 @@ function MainPage() {
         setLoading(false);
         setOutput("Error while polling submission.");
       }
-    }, 1000); // poll every 1s
+    }, 1000);
   };
 
-  // -----------------------------
-  // SUBMIT CODE
-  // -----------------------------
   const handleSubmit = async () => {
+    if (!challengeId) return;
+
     setLoading(true);
     setOutput("Submitting...\n");
 
@@ -72,7 +92,7 @@ function MainPage() {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `${API_BASE}/challenges/Hardest-Challenge/submissions`,
+        `${API_BASE}/challenges/${challengeId}/submissions`,
         {
           method: "POST",
           headers: {
@@ -92,13 +112,23 @@ function MainPage() {
         `Submission created!\nID: ${data.id}\nStatus: ${data.status}\n\nPolling...`
       );
 
-      // start polling
       pollSubmission(data.id);
     } catch (err) {
+      console.error(err);
       setLoading(false);
       setOutput("Submission failed.");
     }
   };
+
+  if (!challengeId) {
+    return (
+      <div className="app-grid">
+        <div style={{ color: "white", padding: "20px" }}>
+          Loading challenge...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-grid">
@@ -115,8 +145,8 @@ function MainPage() {
 
       <main className="main">
         <section className="problem">
-          <h2>Problem</h2>
-          <p>Print "Hello World"</p>
+          <h2>{challenge?.title || "Problem"}</h2>
+          <p>{challenge?.description || "Print \"Hello World\""}</p>
         </section>
 
         <section className="editor">
