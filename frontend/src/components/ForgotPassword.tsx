@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { API_BASE } from "./apiBase.ts";
+import { API_BASE } from "../apiBase.ts";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");

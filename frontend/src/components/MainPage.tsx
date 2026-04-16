@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE } from "./apiBase.ts";
+import { API_BASE } from "../apiBase.ts";
 import ChallengePanel from "./ChallengePanel.tsx";
 import EditorPanel from "./EditorPanel.tsx";
 import OutputPanel from "./OutputPanel.tsx";

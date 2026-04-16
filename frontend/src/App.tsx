@@ -6,16 +6,16 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import Login from "./Login.tsx";
-import Register from "./Register.tsx";
-import MainPage from "./MainPage.tsx";
-import Account from "./Account.tsx";
-import Leaderboard from "./Leaderboard.tsx";
-import VerifyEmail from "./VerifyEmail.tsx";
-import ForgotPassword from "./ForgotPassword.tsx";
-import ResetPassword from "./ResetPassword.tsx";
+import Login from "./components/Login.tsx";
+import Register from "./components/Register.tsx";
+import MainPage from "./components/MainPage.tsx";
+import Account from "./components/Account.tsx";
+import Leaderboard from "./components/Leaderboard.tsx";
+import VerifyEmail from "./components/VerifyEmail.tsx";
+import ForgotPassword from "./components/ForgotPassword.tsx";
+import ResetPassword from "./components/ResetPassword.tsx";
 
-import "./App.css";
+import "./styles/App.css";
 
 type ProtectedRouteProps = {
   children: ReactNode;
