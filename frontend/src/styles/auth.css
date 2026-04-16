@@ -83,16 +83,21 @@
   margin-top: 1rem;
   padding: 12px 14px;
   border-radius: var(--radius-md);
-  background: var(--color-accent-hover);
-  color: var(--color-text);
+  background: var(--color-surface-deep);
+  border: 1px solid var(--color-border-workspace);
+  color: var(--color-text-muted);
 }
 
 .auth-message--success {
   color: var(--color-success-bright);
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.08);
 }
 
 .auth-message--error {
   color: var(--color-error);
+  border-color: rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.08);
 }
 
 .forgot-password {
