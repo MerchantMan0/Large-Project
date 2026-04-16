@@ -10,7 +10,6 @@ function Register({ onBackToLogin }: RegisterProps) {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
 
-  const [user_id, setUser_id] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -30,8 +29,6 @@ function Register({ onBackToLogin }: RegisterProps) {
       if (!response.ok) {
         throw new Error(data.error || "Registration failed");
       }
-
-      setUser_id(data.user_id);
 
       setSuccess(
         "Account created! Check your email to verify your account before logging in."
@@ -86,12 +83,6 @@ function Register({ onBackToLogin }: RegisterProps) {
           Login
         </button>
       </form>
-
-      {user_id && (
-        <p className="auth-message auth-message--success">
-          Registered user ID: {user_id}
-        </p>
-      )}
 
       {success && <p className="auth-message auth-message--success">{success}</p>}
 
