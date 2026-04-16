@@ -37,7 +37,7 @@ function Login({ setToken }: LoginProps) {
       }
 
       const data: LoginResponse = await response.json();
-
+      localStorage.setItem("token", data.access_token);
       setToken(data.access_token);
 
       console.log("Logged in, token:", data.access_token);
@@ -92,6 +92,11 @@ function Login({ setToken }: LoginProps) {
         >
           Register
         </button>
+
+        <p className="forgot-password" onClick={() => navigate("/forgot-password")}>
+          Forgot Password?
+        </p>
+
       </form>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
