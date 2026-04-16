@@ -1,9 +1,15 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_BASE } from "./apiBase.ts";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+
+  const goToLogin = () => {
+    navigate("/");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +45,9 @@ function ForgotPassword() {
         />
 
         <button type="submit">Send Reset Link</button>
+                <button type="button" onClick={goToLogin} style={{ marginLeft: "1rem" }}>
+          Back to Login
+        </button>
       </form>
 
       {message && <p>{message}</p>}
