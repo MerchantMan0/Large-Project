@@ -40,10 +40,14 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/auth/verify-email" element={<VerifyEmail />} />
+        {/* Public routes */}
         <Route path="/" element={<Login setToken={setToken} />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/auth/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
+        {/* Protected routes, requires login */}
         <Route
           path="/main"
           element={
@@ -53,14 +57,29 @@ function App() {
           }
         />
 
-        <Route path="/account" element={<Account />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/account"
+          element={
+            <ProtectedRoute token={token}>
+              <Account />
+            </ProtectedRoute>
+          }
+        />
 
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute token={token}>
+              <Leaderboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+
   );
 }
 
