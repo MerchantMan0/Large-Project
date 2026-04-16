@@ -26,14 +26,9 @@ type Submission = {
   };
 };
 
-type SubmissionResponse = {
-  items: Submission[];
-  page: number;
-  page_size: number;
-  total: number;
-};
-
 function Account() {
+  const didFetchSubsRef = React.useRef(false);
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -47,7 +42,6 @@ function Account() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingSubs, setLoadingSubs] = useState(true);
 
-
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -60,6 +54,7 @@ function Account() {
         });
 
         const data = await res.json();
+
         setUser(data);
       } catch (err) {
         console.error(err);
@@ -71,20 +66,52 @@ function Account() {
     fetchUser();
   }, []);
 
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      try {
-        const token = localStorage.getItem("token");
+  // fetch all solutions by looping through pages
+  const fetchAllSubmissions = async (userId: string, token: string) => {
+    let page = 1;
+    const pageSize = 20;
+    let all: Submission[] = [];
 
-        const res = await fetch(`${API_BASE}/users/me/submissions`, {
+    while (true) {
+      const res = await fetch(
+        `${API_BASE}/users/${userId}/submissions?page=${page}&pageSize=${pageSize}`,
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+        }
+      );
 
-        const data: SubmissionResponse = await res.json();
+      const data = await res.json();
 
-        setSubmissions(data.items || []);
+      const items: Submission[] = data.items || [];
+
+      all = [...all, ...items];
+
+
+      if (items.length === 0) break;
+      if (data.total && all.length >= data.total) break;
+
+      page++;
+    }
+
+    return all;
+  };
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (didFetchSubsRef.current) return;
+    didFetchSubsRef.current = true;
+
+    const load = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const allSubs = await fetchAllSubmissions(user.id, token);
+
+        setSubmissions(allSubs);
       } catch (err) {
         console.error(err);
       } finally {
@@ -92,8 +119,8 @@ function Account() {
       }
     };
 
-    fetchSubmissions();
-  }, []);
+    load();
+  }, [user]);
 
   return (
     <div className="app-grid">
@@ -102,8 +129,13 @@ function Account() {
 
         <nav className="header-nav">
           <button onClick={() => navigate("/main")}>Home</button>
-          <button onClick={() => navigate("/leaderboard")}>Leaderboard</button>
-          <button style={{ backgroundColor: "lightcoral" }} onClick={handleLogout}>
+          <button onClick={() => navigate("/leaderboard")}>
+            Leaderboard
+          </button>
+          <button
+            style={{ backgroundColor: "lightcoral" }}
+            onClick={handleLogout}
+          >
             Logout
           </button>
         </nav>
@@ -121,6 +153,7 @@ function Account() {
                 <h2>{user.display_name}</h2>
                 <p className="user-id">User ID: {user.id}</p>
               </div>
+
               <div className="stats-grid">
                 <div className="stat-card">
                   <h3>{user.stats.submissions}</h3>
@@ -141,44 +174,49 @@ function Account() {
           ) : (
             <p>Failed to load user.</p>
           )}
+
           <div className="profile-box">
             <h2>Submission History</h2>
 
             {loadingSubs ? (
-              <p style={{ color: "#cbd5e1" }}>Loading submissions...</p>
+              <p style={{ color: "#cbd5e1" }}>
+                Loading submissions...
+              </p>
             ) : (
-              <table className="leaderboard-table">
-                <thead>
-                  <tr>
-                    <th>Challenge</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Gas</th>
-                    <th>Memory</th>
-                    <th>Lines</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {submissions.map((sub) => (
-                    <tr key={sub.id}>
-                      <td>{sub.challenge_id}</td>
-                      <td>{sub.status}</td>
-                      <td>
-                        {new Date(sub.submitted_at).toLocaleDateString()}
-                      </td>
-                      <td>{sub.metrics.gas}</td>
-                      <td>{sub.metrics.memory_bytes}</td>
-                      <td>{sub.metrics.lines}</td>
+              <div className="submission-scroll">
+                <table className="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Challenge</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th>Gas</th>
+                      <th>Memory</th>
+                      <th>Lines</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+
+                  <tbody>
+                    {submissions.map((sub) => (
+                      <tr key={sub.id}>
+                        <td>{sub.challenge_id}</td>
+                        <td>{sub.status}</td>
+                        <td>
+                          {new Date(
+                            sub.submitted_at
+                          ).toLocaleDateString()}
+                        </td>
+                        <td>{sub.metrics.gas}</td>
+                        <td>{sub.metrics.memory_bytes}</td>
+                        <td>{sub.metrics.lines}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
-
-        
       </main>
     </div>
   );
