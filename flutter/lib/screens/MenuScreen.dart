@@ -51,7 +51,7 @@ class _MainPageState extends State<MainPage> {
   String opensAt = '';
   String closesAt = '';
 
-  String runOutput = 'Press "Run Code" to see the API response here.';
+  String runOutput = 'Press "Submit" to see the API response here.';
 
   @override
   void initState() {
@@ -451,7 +451,7 @@ class _MainPageState extends State<MainPage> {
                   onPressed: () {
                     _codeController.text = '''-- Write your Lua solution here''';
                     setState(() {
-                      runOutput = 'Press "Run Code" to see the API response here.';
+                      runOutput = 'Press "Submit" to see the API response here.';
                     });
                   },
                   style: OutlinedButton.styleFrom(
@@ -511,26 +511,6 @@ class _MainPageState extends State<MainPage> {
                     height: 1.5,
                   ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: isRunningCode ? null : runLuaCode,
-              icon: isRunningCode
-                  ? const SizedBox(
-                height: 18,
-                width: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Icon(Icons.play_arrow),
-              label: Text(isRunningCode ? 'Running...' : 'Run Code'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF16A34A),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ),
