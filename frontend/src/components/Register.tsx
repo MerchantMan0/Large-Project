@@ -1,8 +1,11 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../apiBase.ts";
 
-function Register() {
+type RegisterProps = {
+  onBackToLogin: () => void;
+};
+
+function Register({ onBackToLogin }: RegisterProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -10,8 +13,6 @@ function Register() {
   const [user_id, setUser_id] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,14 +41,8 @@ function Register() {
     }
   };
 
-  const goToLogin = () => {
-    navigate("/");
-  };
-
   return (
     <div className="auth-page">
-      <h2>Register</h2>
-
       <form onSubmit={handleRegister}>
         <div>
           <label>Username:</label>
@@ -85,7 +80,7 @@ function Register() {
 
         <button
           type="button"
-          onClick={goToLogin}
+          onClick={onBackToLogin}
           style={{ marginTop: "1rem" }}
         >
           Login

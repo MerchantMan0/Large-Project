@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import * as Dialog from "@radix-ui/react-dialog";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
@@ -9,8 +10,18 @@ import EditorPanel, { type EditorTab } from "./EditorPanel.tsx";
 import Leaderboard from "./Leaderboard.tsx";
 import OutputPanel from "./OutputPanel.tsx";
 import ReadmeMonacoPanel from "./ReadmeMonacoPanel.tsx";
+import ForgotPassword from "./ForgotPassword.tsx";
+import Login from "./Login.tsx";
+import Register from "./Register.tsx";
 
 const DEFAULT_LUA = `-- Type Lua code here\nprint("Hello World")`;
+
+type AuthPanel = "login" | "register" | "forgot";
+
+type MainPageProps = {
+  token: string | null;
+  setToken: React.Dispatch<React.SetStateAction<string | null>>;
+};
 
 type Submission = {
   id: string;
@@ -29,8 +40,15 @@ type Challenge = {
   description?: string;
 };
 
-function MainPage() {
+function MainPage({ token, setToken }: MainPageProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [authPanel, setAuthPanel] = useState<AuthPanel>(() => {
+    const a = searchParams.get("auth");
+    if (a === "register") return "register";
+    if (a === "forgot") return "forgot";
+    return "login";
+  });
 
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
@@ -86,8 +104,73 @@ function MainPage() {
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
-    navigate("/");
-  }, [navigate]);
+    setToken(null);
+    navigate("/main", { replace: true });
+  }, [navigate, setToken]);
+
+  const openLogin = useCallback(() => {
+    setAuthPanel("login");
+    setSearchParams({}, { replace: true });
+  }, [setSearchParams]);
+
+  const openRegister = useCallback(() => {
+    setAuthPanel("register");
+  }, []);
+
+  const openForgot = useCallback(() => {
+    setAuthPanel("forgot");
+  }, []);
+
+  useEffect(() => {
+    if (token !== null) return;
+    const a = searchParams.get("auth");
+    if (a === "register") setAuthPanel("register");
+    else if (a === "forgot") setAuthPanel("forgot");
+    else setAuthPanel("login");
+  }, [token, searchParams]);
+
+  const authTitle =
+    authPanel === "login"
+      ? "Login"
+      : authPanel === "register"
+        ? "Register"
+        : "Forgot Password";
+
+  const authDialog =
+    token === null ? (
+      <Dialog.Root open modal>
+        <Dialog.Portal>
+          <Dialog.Overlay className="login-dialog-overlay" />
+          <Dialog.Content
+            className="login-dialog-content"
+            aria-describedby={undefined}
+            onInteractOutside={(e) => {
+              e.preventDefault();
+              if (authPanel !== "login") openLogin();
+            }}
+            onEscapeKeyDown={(e) => {
+              e.preventDefault();
+              if (authPanel !== "login") openLogin();
+            }}
+          >
+            <Dialog.Title className="login-dialog-title">{authTitle}</Dialog.Title>
+            {authPanel === "login" && (
+              <Login
+                setToken={setToken}
+                onGoToRegister={openRegister}
+                onGoToForgotPassword={openForgot}
+              />
+            )}
+            {authPanel === "register" && (
+              <Register onBackToLogin={openLogin} />
+            )}
+            {authPanel === "forgot" && (
+              <ForgotPassword onBackToLogin={openLogin} />
+            )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    ) : null;
 
   useEffect(() => {
     const fetchChallenge = async () => {
@@ -179,15 +262,19 @@ function MainPage() {
 
   if (!challengeId) {
     return (
-      <div className="app-grid">
-        <div style={{ color: "white", padding: "20px" }}>
-          Loading challenge...
+      <>
+        <div className="app-grid">
+          <div style={{ color: "white", padding: "20px" }}>
+            Loading challenge...
+          </div>
         </div>
-      </div>
+        {authDialog}
+      </>
     );
   }
 
   return (
+    <>
     <div className="app-grid">
       <header className="header">
         <h1>Lua Leetcode</h1>
@@ -291,6 +378,8 @@ function MainPage() {
         </Allotment>
       </main>
     </div>
+    {authDialog}
+    </>
   );
 }
 

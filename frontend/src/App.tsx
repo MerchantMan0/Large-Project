@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactNode } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,22 +6,9 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import Login from "./components/Login.tsx";
-import Register from "./components/Register.tsx";
 import MainPage from "./components/MainPage.tsx";
 import VerifyEmail from "./components/VerifyEmail.tsx";
-import ForgotPassword from "./components/ForgotPassword.tsx";
 import ResetPassword from "./components/ResetPassword.tsx";
-
-type ProtectedRouteProps = {
-  children: ReactNode;
-  token: string | null;
-};
-
-function ProtectedRoute({ children, token }: ProtectedRouteProps) {
-  if (!token) return <Navigate to="/" replace />;
-  return <>{children}</>;
-}
 
 function App() {
   const [token, setToken] = useState<string | null>(
@@ -36,25 +23,24 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Login setToken={setToken} />} />
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/register"
+          element={<Navigate to="/main?auth=register" replace />}
+        />
         <Route path="/auth/verify-email" element={<VerifyEmail />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/forgot-password"
+          element={<Navigate to="/main?auth=forgot" replace />}
+        />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Protected routes, requires login */}
         <Route
           path="/main"
-          element={
-            <ProtectedRoute token={token}>
-              <MainPage />
-            </ProtectedRoute>
-          }
+          element={<MainPage token={token} setToken={setToken} />}
         />
 
-        {/* fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<Navigate to="/main" replace />} />
+        <Route path="*" element={<Navigate to="/main" replace />} />
       </Routes>
     </Router>
 

@@ -1,11 +1,15 @@
-import { useState } from "react";
+  import React, { useState, type FormEvent } from "react";
 import { API_BASE } from "../apiBase.ts";
 
-function ForgotPassword() {
+type ForgotPasswordProps = {
+  onBackToLogin: () => void;
+};
+
+function ForgotPassword({ onBackToLogin }: ForgotPasswordProps) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     try {
@@ -27,18 +31,23 @@ function ForgotPassword() {
 
   return (
     <div className="auth-page">
-      <h2>Forgot Password</h2>
-
       <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="Enter your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div>
+          <label>Email:</label>
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
         <button type="submit">Send Reset Link</button>
+
+        <button type="button" onClick={onBackToLogin}>
+          Back to login
+        </button>
       </form>
 
       {message && <p className="auth-message">{message}</p>}
