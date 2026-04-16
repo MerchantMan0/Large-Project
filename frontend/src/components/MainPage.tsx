@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as Tabs from "@radix-ui/react-tabs";
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
 import { API_BASE } from "../apiBase.ts";
+import Account from "./Account.tsx";
 import EditorPanel, { type EditorTab } from "./EditorPanel.tsx";
+import Leaderboard from "./Leaderboard.tsx";
 import OutputPanel from "./OutputPanel.tsx";
 import ReadmeMonacoPanel from "./ReadmeMonacoPanel.tsx";
 
@@ -40,6 +43,9 @@ function MainPage() {
 
   const [output, setOutput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [leftPaneTab, setLeftPaneTab] = useState<
+    "readme" | "account" | "leaderboard" | "output"
+  >("readme");
 
   const activeSource = useMemo(
     () => editorTabs.find((t) => t.id === activeEditorTab)?.source ?? "",
@@ -77,6 +83,11 @@ function MainPage() {
       setActiveEditorTab(editorTabs[0].id);
     }
   }, [editorTabs, activeEditorTab]);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("token");
+    navigate("/");
+  }, [navigate]);
 
   useEffect(() => {
     const fetchChallenge = async () => {
@@ -131,6 +142,7 @@ function MainPage() {
     if (!challengeId) return;
 
     setLoading(true);
+    setLeftPaneTab("output");
     setOutput("Submitting...\n");
 
     try {
@@ -181,11 +193,8 @@ function MainPage() {
         <h1>Lua Leetcode</h1>
 
         <nav className="header-nav">
-          <button type="button" onClick={() => navigate("/account")}>
-            Account
-          </button>
-          <button type="button" onClick={() => navigate("/leaderboard")}>
-            Leaderboard
+          <button type="button" onClick={handleLogout}>
+            Logout
           </button>
         </nav>
       </header>
@@ -196,35 +205,88 @@ function MainPage() {
             minSize={160}
             className="workspace-pane workspace-panel ui-card ui-card--panel-shell"
           >
-            <ReadmeMonacoPanel challenge={challenge} />
+            <div className="editor-panel-inner">
+              <Tabs.Root
+                className="editor-tabs-root"
+                value={leftPaneTab}
+                onValueChange={(v) =>
+                  setLeftPaneTab(
+                    v as "readme" | "account" | "leaderboard" | "output"
+                  )
+                }
+              >
+                <div className="editor-tabs-toolbar-row">
+                  <Tabs.List
+                    className="editor-tabs-list"
+                    aria-label="Workspace side panel"
+                  >
+                    <Tabs.Trigger
+                      className="editor-tab-trigger"
+                      value="readme"
+                      type="button"
+                    >
+                      README
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      className="editor-tab-trigger"
+                      value="account"
+                      type="button"
+                    >
+                      Account
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      className="editor-tab-trigger"
+                      value="leaderboard"
+                      type="button"
+                    >
+                      Leaderboard
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      className="editor-tab-trigger"
+                      value="output"
+                      type="button"
+                    >
+                      Output
+                    </Tabs.Trigger>
+                  </Tabs.List>
+                </div>
+                <Tabs.Content
+                  className="editor-tab-content"
+                  value="readme"
+                  forceMount
+                >
+                  <ReadmeMonacoPanel challenge={challenge} omitTabStrip />
+                </Tabs.Content>
+                <Tabs.Content className="editor-tab-content" value="account">
+                  <Account />
+                </Tabs.Content>
+                <Tabs.Content
+                  className="editor-tab-content"
+                  value="leaderboard"
+                >
+                  <Leaderboard />
+                </Tabs.Content>
+                <Tabs.Content className="editor-tab-content" value="output">
+                  <OutputPanel output={output} />
+                </Tabs.Content>
+              </Tabs.Root>
+            </div>
           </Allotment.Pane>
 
-          <Allotment.Pane minSize={240} className="workspace-pane">
-            <div className="editor-stack">
-              <Allotment vertical defaultSizes={[62, 38]} minSize={80}>
-                <Allotment.Pane
-                  minSize={160}
-                  className="workspace-pane workspace-panel ui-card ui-card--panel-shell"
-                >
-                  <EditorPanel
-                    tabs={editorTabs}
-                    activeTabId={activeEditorTab}
-                    onActiveTabChange={setActiveEditorTab}
-                    onTabSourceChange={onTabSourceChange}
-                    onNewTab={onNewTab}
-                    onCloseTab={onCloseTab}
-                    onSubmit={handleSubmit}
-                    loading={loading}
-                  />
-                </Allotment.Pane>
-                <Allotment.Pane
-                  minSize={100}
-                  className="workspace-pane workspace-panel ui-card ui-card--panel-shell"
-                >
-                  <OutputPanel output={output} />
-                </Allotment.Pane>
-              </Allotment>
-            </div>
+          <Allotment.Pane
+            minSize={240}
+            className="workspace-pane workspace-panel ui-card ui-card--panel-shell"
+          >
+            <EditorPanel
+              tabs={editorTabs}
+              activeTabId={activeEditorTab}
+              onActiveTabChange={setActiveEditorTab}
+              onTabSourceChange={onTabSourceChange}
+              onNewTab={onNewTab}
+              onCloseTab={onCloseTab}
+              onSubmit={handleSubmit}
+              loading={loading}
+            />
           </Allotment.Pane>
         </Allotment>
       </main>

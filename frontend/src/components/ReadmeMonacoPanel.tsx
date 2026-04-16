@@ -8,6 +8,7 @@ type ChallengeFields = {
 
 type ReadmeMonacoPanelProps = {
   challenge: ChallengeFields | null;
+  omitTabStrip?: boolean;
 };
 
 function buildWorkspaceReadme(challenge: ChallengeFields | null): string {
@@ -22,28 +23,46 @@ function buildWorkspaceReadme(challenge: ChallengeFields | null): string {
 
 ${description}
 
----
-
-## How to use this workspace
-
-- Your **solution** lives in the editor on the right (start from \`solution.lua\` or open new tabs with **+**).
-- This **README** is read-only reference while you work.
-- Click **Submit** to send the **active tab** source to the server for the loaded challenge.
-
-### Lua quick start
-
-\`\`\`lua
--- Example: print to stdout (shown in Output after submit)
-print("Hello from Lua")
-\`\`\`
+## Lua Documentation
+[Lua Documentation](https://www.lua.org/manual/5.4/)
 `;
 }
 
-function ReadmeMonacoPanel({ challenge }: ReadmeMonacoPanelProps) {
+function ReadmeMonacoPanel({
+  challenge,
+  omitTabStrip = false,
+}: ReadmeMonacoPanelProps) {
   const markdown = useMemo(
     () => buildWorkspaceReadme(challenge),
     [challenge]
   );
+
+  if (omitTabStrip) {
+    return (
+      <div className="readme-editor-inner readme-editor-inner--stretch">
+        <div className="readme-monaco-wrap">
+          <Editor
+            height="100%"
+            language="markdown"
+            theme="vs-dark"
+            value={markdown}
+            options={{
+              readOnly: true,
+              domReadOnly: true,
+              fontSize: 14,
+              minimap: { enabled: false },
+              wordWrap: "on",
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              lineNumbers: "on",
+              glyphMargin: false,
+              folding: true,
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="readme-editor-inner">

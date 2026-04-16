@@ -9,8 +9,6 @@ import {
 import Login from "./components/Login.tsx";
 import Register from "./components/Register.tsx";
 import MainPage from "./components/MainPage.tsx";
-import Account from "./components/Account.tsx";
-import Leaderboard from "./components/Leaderboard.tsx";
 import VerifyEmail from "./components/VerifyEmail.tsx";
 import ForgotPassword from "./components/ForgotPassword.tsx";
 import ResetPassword from "./components/ResetPassword.tsx";
@@ -51,24 +49,6 @@ function App() {
           element={
             <ProtectedRoute token={token}>
               <MainPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/account"
-          element={
-            <ProtectedRoute token={token}>
-              <Account />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/leaderboard"
-          element={
-            <ProtectedRoute token={token}>
-              <Leaderboard />
             </ProtectedRoute>
           }
         />

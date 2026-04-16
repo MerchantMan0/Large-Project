@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../apiBase.ts";
 
 type User = {
@@ -34,19 +33,11 @@ type SubmissionResponse = {
 };
 
 function Account() {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
-  };
-
   const [user, setUser] = useState<User | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
 
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingSubs, setLoadingSubs] = useState(true);
-
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -96,90 +87,75 @@ function Account() {
   }, []);
 
   return (
-    <div className="app-grid">
-      <header className="header">
-        <h1>Lua Leetcode</h1>
+    <div className="account-embedded">
+      <div className="account-workspace-surface">
+        {loadingUser ? (
+          <p className="account-workspace-muted">Loading user…</p>
+        ) : user ? (
+          <>
+            <div className="account-profile-block">
+              <h3 className="account-workspace-subheading">
+                User: {user.display_name}
+              </h3>
+              <p className="account-user-id">User ID: {user.id}</p>
+            </div>
 
-        <nav className="header-nav">
-          <button onClick={() => navigate("/main")}>Home</button>
-          <button onClick={() => navigate("/leaderboard")}>Leaderboard</button>
-          <button style={{ backgroundColor: "lightcoral" }} onClick={handleLogout}>
-            Logout
-          </button>
-        </nav>
-      </header>
-
-      <main className="account-page">
-        <div className="ui-card ui-card--panel-shell ui-card--account">
-          <h2>Account</h2>
-
-          {loadingUser ? (
-            <p className="text-muted">Loading user...</p>
-          ) : user ? (
-            <>
-              <div className="ui-card ui-card--profile">
-                <h2>{user.display_name}</h2>
-                <p className="user-id">User ID: {user.id}</p>
+            <div className="account-stats-row">
+              <div className="account-stat-cell">
+                <p className="account-stat-value">{user.stats.submissions}</p>
+                <p className="account-stat-label">Submissions</p>
               </div>
-              <div className="stats-grid">
-                <div className="ui-card ui-card--stat">
-                  <h3>{user.stats.submissions}</h3>
-                  <p>Submissions</p>
-                </div>
-
-                <div className="ui-card ui-card--stat">
-                  <h3>{user.stats.accepted}</h3>
-                  <p>Accepted</p>
-                </div>
-
-                <div className="ui-card ui-card--stat">
-                  <h3>{user.stats.challenges_solved}</h3>
-                  <p>Solved</p>
-                </div>
+              <div className="account-stat-cell">
+                <p className="account-stat-value">{user.stats.accepted}</p>
+                <p className="account-stat-label">Accepted</p>
               </div>
-            </>
-          ) : (
-            <p>Failed to load user.</p>
-          )}
-          <div className="ui-card ui-card--profile">
-            <h2>Submission History</h2>
+              <div className="account-stat-cell">
+                <p className="account-stat-value">
+                  {user.stats.challenges_solved}
+                </p>
+                <p className="account-stat-label">Solved</p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="account-workspace-muted">Failed to load user.</p>
+        )}
 
-            {loadingSubs ? (
-              <p className="text-muted">Loading submissions...</p>
-            ) : (
-              <table className="leaderboard-table">
-                <thead>
-                  <tr>
-                    <th>Challenge</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Gas</th>
-                    <th>Memory</th>
-                    <th>Lines</th>
+        <h3 className="account-workspace-subheading account-workspace-subheading--section">
+          Submission history
+        </h3>
+
+        {loadingSubs ? (
+          <p className="account-workspace-muted">Loading submissions…</p>
+        ) : (
+          <div className="account-table-wrap">
+            <table className="account-data-table">
+              <thead>
+                <tr>
+                  <th>Challenge</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Gas</th>
+                  <th>Memory</th>
+                  <th>Lines</th>
+                </tr>
+              </thead>
+              <tbody>
+                {submissions.map((sub) => (
+                  <tr key={sub.id}>
+                    <td>{sub.challenge_id}</td>
+                    <td>{sub.status}</td>
+                    <td>{new Date(sub.submitted_at).toLocaleDateString()}</td>
+                    <td>{sub.metrics.gas}</td>
+                    <td>{sub.metrics.memory_bytes}</td>
+                    <td>{sub.metrics.lines}</td>
                   </tr>
-                </thead>
-
-                <tbody>
-                  {submissions.map((sub) => (
-                    <tr key={sub.id}>
-                      <td>{sub.challenge_id}</td>
-                      <td>{sub.status}</td>
-                      <td>
-                        {new Date(sub.submitted_at).toLocaleDateString()}
-                      </td>
-                      <td>{sub.metrics.gas}</td>
-                      <td>{sub.metrics.memory_bytes}</td>
-                      <td>{sub.metrics.lines}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-
-        
-      </main>
+        )}
+      </div>
     </div>
   );
 }

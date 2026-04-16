@@ -78,32 +78,36 @@ function EditorPanel({
             className="editor-tab-content"
             value={t.id}
           >
-            <div className="editor-monaco-wrap">
-              <Editor
-                height="100%"
-                language="lua"
-                theme="vs-dark"
-                value={t.source}
-                onChange={(value) => onTabSourceChange(t.id, value ?? "")}
-                options={{
-                  fontSize: 14,
-                  lineHeight: 21,
-                  fontFamily: "monospace",
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                }}
-              />
+            <div className="editor-monaco-host">
+              <div className="editor-monaco-wrap">
+                <Editor
+                  height="100%"
+                  language="lua"
+                  theme="vs-dark"
+                  value={t.source}
+                  onChange={(value) => onTabSourceChange(t.id, value ?? "")}
+                  options={{
+                    fontSize: 14,
+                    lineHeight: 21,
+                    fontFamily: "monospace",
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                  }}
+                />
+              </div>
+              <div
+                className="editor-toolbar editor-toolbar--float"
+                aria-label="Submit actions"
+              >
+                <button type="button" onClick={onSubmit} disabled={loading}>
+                  {loading ? "Running..." : "Submit"}
+                </button>
+              </div>
             </div>
           </Tabs.Content>
         ))}
       </Tabs.Root>
-
-      <div className="editor-toolbar">
-        <button type="button" onClick={onSubmit} disabled={loading}>
-          {loading ? "Running..." : "Submit"}
-        </button>
-      </div>
     </div>
   );
 }

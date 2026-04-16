@@ -26,19 +26,21 @@
   --color-workspace-surface: #020617;
   --color-tab-row-muted: rgba(255, 255, 255, 0.6);
   --color-tab-new-muted: rgba(255, 255, 255, 0.75);
+  --color-input-placeholder: rgba(255, 255, 255, 0.38);
+  --color-workspace-table-row-hover: rgba(255, 255, 255, 0.04);
   --color-auth-card-bg: #0b1220;
   --color-rank-gold: gold;
   --color-rank-silver: silver;
   --color-rank-bronze: #cd7f32;
   --shadow-leaderboard: 0 8px 30px rgba(0, 0, 0, 0.3);
   --shadow-auth: 0 10px 18px rgba(0, 0, 0, 0.26);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-auth: 24px;
-  --radius-input: 14px;
-  --radius-pill: 999px;
-  --radius-metric-tab: 10px;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-auth: 0;
+  --radius-input: 0;
+  --radius-pill: 0;
+  --radius-metric-tab: 0;
 }
 
 /* Shared panel chrome (account, leaderboard shell, workspace panes) */
@@ -88,7 +90,7 @@
   justify-content: center;
   text-align: center;
   padding: 1rem;
-  border-radius: 10px;
+  border-radius: 0;
   margin-bottom: 1rem;
   background: var(--color-surface-deep);
   border: 1px solid var(--color-border);

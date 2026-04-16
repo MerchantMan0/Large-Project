@@ -32,7 +32,7 @@
 }
 
 .auth-page input::placeholder {
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--color-input-placeholder);
 }
 
 .auth-page input:focus {
@@ -88,12 +88,10 @@
 }
 
 .auth-message--success {
-  background: var(--color-accent-hover);
   color: var(--color-success-bright);
 }
 
 .auth-message--error {
-  background: var(--color-accent-hover);
   color: var(--color-error);
 }
 

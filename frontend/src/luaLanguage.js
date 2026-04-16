@@ -1,18 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import { registerLua } from "./luaLanguage";
 import { API_BASE } from "./apiBase.ts";
 
 function MainPage() {
-  const navigate = useNavigate();
   const outputRef = useRef(null);
 
   const [code, setCode] = useState(
     `-- Type Lua code here\nprint("Hello World")`
   );
 
-  // 🔥 Register Lua language once
+  // Register Lua language once
   useEffect(() => {
     import("monaco-editor").then((monaco) => {
       registerLua(monaco);
@@ -54,13 +52,6 @@ function MainPage() {
     <div className="app-grid">
       <header className="header">
         <h1>Lua Wordle</h1>
-        <button
-          type="button"
-          onClick={() => navigate("/account")}
-          style={{ marginLeft: "auto" }}
-        >
-          Account
-        </button>
       </header>
 
       <main className="main">

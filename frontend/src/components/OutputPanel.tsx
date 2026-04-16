@@ -6,8 +6,7 @@ type OutputPanelProps = {
 
 function OutputPanel({ output }: OutputPanelProps) {
   return (
-    <div className="output-panel-inner">
-      <h3 className="output-panel-title">Output</h3>
+    <div className="output-panel-inner output-panel-inner--tab">
       <pre className="output-panel-pre">{output}</pre>
     </div>
   );
