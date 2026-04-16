@@ -39,6 +39,16 @@
 
 /* UNIVERSAL APP STYLING */
 
+html,
+body,
+#root {
+  background-color: #0f172a;
+}
+
+#root {
+  min-height: 100vh;
+}
+
 .app-grid {
   display: grid;
   grid-template-rows: 60px 1fr;
@@ -237,167 +247,135 @@
   box-sizing: border-box;
 }
 
-.login {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: #121a2b;
-  border-radius: 12px;
-  color: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-}
-
-.login form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.login input {
-  width: 100%;
-  padding: 10px 12px;
-  margin-top: 6px;
-  border-radius: 8px;
-  border: 1px solid #2a3a5a;
-  background: #0e1426;
-  color: white;
-  outline: none;
-}
-
-.login input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
-
-.login button {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s ease;
-}
-
-.login button[type="submit"] {
-  background: #3b82f6;
-  color: white;
-}
-
-.login button[type="submit"]:hover {
-  background: #2563eb;
-}
-
-.login button[type="button"] {
-  background: transparent;
-  border: 1px solid #2a3a5a;
-  color: white;
-}
-
-.login button[type="button"]:hover {
-  background: #1c2a44;
-}
-
-.login h2 {
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.login p {
-  text-align: center;
-  margin-top: 1rem;
-  color: #ff6b6b;
-}
-
-.forgot-password {
-  margin-top: 10px;
-  font-size: 0.85rem;
-  color: #94a3b8;
-  cursor: pointer;
-  text-align: center;
-  transition: 0.2s ease;
-}
-
-.forgot-password:hover {
-  color: #3b82f6;
-}
-
+.login,
 .register {
-  max-width: 400px;
+  max-width: 420px;
   margin: 2rem auto;
-  padding: 2rem;
-  background: #121a2b;
-  border-radius: 12px;
-  color: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  padding: 24px;
+  background: #0b1220;
+  color: #fff;
+  border: 1px solid #334155;
+  border-radius: 24px;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.26);
 }
 
+.login form,
 .register form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 14px;
 }
 
-.register h2 {
-  text-align: center;
-  margin-bottom: 1rem;
+.login label,
+.register label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
 }
 
+.login input,
 .register input {
   width: 100%;
-  padding: 10px 12px;
   margin-top: 6px;
-  border-radius: 8px;
-  border: 1px solid #2a3a5a;
-  background: #0e1426;
-  color: white;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.register input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
-
-.register button {
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 14px;
+  border: 1px solid #334155;
+  background: #111827;
+  color: #fff;
+  outline: none;
+}
+
+.login input::placeholder,
+.register input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.login input:focus,
+.register input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1.5px #60a5fa;
+}
+
+.login button,
+.register button {
+  border-radius: 14px;
   border: none;
   cursor: pointer;
   font-weight: 600;
-  transition: 0.2s ease;
+  font-size: 16px;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
+.login button[type="submit"],
 .register button[type="submit"] {
-  background: #3b82f6;
-  color: white;
-}
-
-.register button[type="submit"]:hover {
+  margin-top: 8px;
+  min-height: 52px;
   background: #2563eb;
+  color: #fff;
 }
 
+.login button[type="submit"]:hover:not(:disabled),
+.register button[type="submit"]:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.login button[type="button"],
 .register button[type="button"] {
+  min-height: 44px;
   background: transparent;
-  border: 1px solid #2a3a5a;
-  color: white;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
 }
 
+.login button[type="button"]:hover,
 .register button[type="button"]:hover {
-  background: #1c2a44;
+  color: #fff;
 }
 
+.login h2 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.register h2 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.login p,
 .register p {
   text-align: center;
   margin-top: 1rem;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #1d4ed8;
+  color: #fff;
 }
 
 .register p[style*="green"] {
+  background: #1d4ed8;
   color: #4ade80 !important;
 }
 
 .register p[style*="red"] {
+  background: #1d4ed8;
   color: #ff6b6b !important;
+}
+
+.forgot-password {
+  margin-top: 10px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
+.forgot-password:hover {
+  color: #60a5fa;
 }
 
 /* MAIN PAGE STYLE */

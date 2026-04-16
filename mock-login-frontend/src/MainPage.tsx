@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Editor from "@monaco-editor/react";
 import { API_BASE } from "./apiBase.ts";
+import ChallengePanel from "./ChallengePanel.tsx";
+import EditorPanel from "./EditorPanel.tsx";
+import OutputPanel from "./OutputPanel.tsx";
 
 type Submission = {
   id: string;
@@ -136,55 +138,31 @@ function MainPage() {
         <h1>Lua Leetcode</h1>
 
         <nav className="header-nav">
-          <button onClick={() => navigate("/account")}>Account</button>
-          <button onClick={() => navigate("/leaderboard")}>
+          <button type="button" onClick={() => navigate("/account")}>
+            Account
+          </button>
+          <button type="button" onClick={() => navigate("/leaderboard")}>
             Leaderboard
           </button>
         </nav>
       </header>
 
       <main className="main">
-        <section className="problem">
-          <h2>{challenge?.title || "Problem"}</h2>
-          <p>{challenge?.description || "Print \"Hello World\""}</p>
-        </section>
+        <ChallengePanel
+          title={challenge?.title || "Problem"}
+          description={
+            challenge?.description || 'Print "Hello World"'
+          }
+        />
 
         <section className="editor">
-          <h2>Editor</h2>
-
-          <Editor
-            height="400px"
-            language="lua"
-            theme="vs-dark"
-            value={code}
-            onChange={(value) => setCode(value ?? "")}
-            options={{
-              fontSize: 14,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }}
+          <EditorPanel
+            code={code}
+            onChangeCode={setCode}
+            onSubmit={handleSubmit}
+            loading={loading}
           />
-
-          <div style={{ marginTop: "10px" }}>
-            <button onClick={handleSubmit} disabled={loading}>
-              {loading ? "Running..." : "Submit"}
-            </button>
-          </div>
-
-          <h3>Output:</h3>
-
-          <pre
-            style={{
-              background: "#111",
-              color: "#0f0",
-              padding: "10px",
-              height: "150px",
-              overflowY: "auto",
-            }}
-          >
-            {output}
-          </pre>
+          <OutputPanel output={output} />
         </section>
       </main>
     </div>
