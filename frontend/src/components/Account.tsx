@@ -109,30 +109,30 @@ function Account() {
         </nav>
       </header>
 
-      <main className="leaderboard-page">
-        <div className="account-card">
+      <main className="account-page">
+        <div className="ui-card ui-card--panel-shell ui-card--account">
           <h2>Account</h2>
 
           {loadingUser ? (
-            <p style={{ color: "#cbd5e1" }}>Loading user...</p>
+            <p className="text-muted">Loading user...</p>
           ) : user ? (
             <>
-              <div className="profile-box">
+              <div className="ui-card ui-card--profile">
                 <h2>{user.display_name}</h2>
                 <p className="user-id">User ID: {user.id}</p>
               </div>
               <div className="stats-grid">
-                <div className="stat-card">
+                <div className="ui-card ui-card--stat">
                   <h3>{user.stats.submissions}</h3>
                   <p>Submissions</p>
                 </div>
 
-                <div className="stat-card">
+                <div className="ui-card ui-card--stat">
                   <h3>{user.stats.accepted}</h3>
                   <p>Accepted</p>
                 </div>
 
-                <div className="stat-card">
+                <div className="ui-card ui-card--stat">
                   <h3>{user.stats.challenges_solved}</h3>
                   <p>Solved</p>
                 </div>
@@ -141,11 +141,11 @@ function Account() {
           ) : (
             <p>Failed to load user.</p>
           )}
-          <div className="profile-box">
+          <div className="ui-card ui-card--profile">
             <h2>Submission History</h2>
 
             {loadingSubs ? (
-              <p style={{ color: "#cbd5e1" }}>Loading submissions...</p>
+              <p className="text-muted">Loading submissions...</p>
             ) : (
               <table className="leaderboard-table">
                 <thead>

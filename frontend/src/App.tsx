@@ -15,8 +15,6 @@ import VerifyEmail from "./components/VerifyEmail.tsx";
 import ForgotPassword from "./components/ForgotPassword.tsx";
 import ResetPassword from "./components/ResetPassword.tsx";
 
-import "./styles/App.css";
-
 type ProtectedRouteProps = {
   children: ReactNode;
   token: string | null;

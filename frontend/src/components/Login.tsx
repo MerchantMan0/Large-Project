@@ -53,7 +53,7 @@ function Login({ setToken }: LoginProps) {
   };
 
   return (
-    <div className="login">
+    <div className="auth-page">
       <h2>Login</h2>
 
       <form onSubmit={handleLogin}>
@@ -99,7 +99,7 @@ function Login({ setToken }: LoginProps) {
 
       </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="auth-message auth-message--error">{error}</p>}
     </div>
   );
 }

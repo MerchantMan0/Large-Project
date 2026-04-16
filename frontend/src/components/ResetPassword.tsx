@@ -52,7 +52,7 @@ function ResetPassword() {
   };
 
   return (
-    <div className="login">
+    <div className="auth-page">
       <h2>Reset Password</h2>
 
       <form onSubmit={handleSubmit}>
@@ -75,7 +75,7 @@ function ResetPassword() {
         <button type="submit">Reset Password</button>
       </form>
 
-      {message && <p>{message}</p>}
+      {message && <p className="auth-message">{message}</p>}
     </div>
   );
 }

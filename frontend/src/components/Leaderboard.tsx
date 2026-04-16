@@ -116,7 +116,7 @@ function Leaderboard() {
       </header>
 
       <main className="leaderboard-page">
-        <div className="leaderboard-card">
+        <div className="ui-card ui-card--panel-shell ui-card--leaderboard">
           <h2>{getMetricLabel()} Leaderboard</h2>
 
           {/* Challenge Dropdown (DYNAMIC) */}

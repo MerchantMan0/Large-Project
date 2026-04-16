@@ -39,9 +39,9 @@ function VerifyEmail() {
   }, []);
 
   return (
-    <div className="login">
+    <div className="auth-page">
       <h2>Email Verification</h2>
-      <p>{status}</p>
+      <p className="auth-message">{status}</p>
     </div>
   );
 }

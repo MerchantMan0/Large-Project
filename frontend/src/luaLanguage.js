@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import { registerLua } from "./luaLanguage";
-import "./styles/App.css";
 import { API_BASE } from "./apiBase.ts";
 
 function MainPage() {

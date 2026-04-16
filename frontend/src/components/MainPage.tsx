@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Allotment } from "allotment";
+import "allotment/dist/style.css";
 import { API_BASE } from "../apiBase.ts";
-import ChallengePanel from "./ChallengePanel.tsx";
-import EditorPanel from "./EditorPanel.tsx";
+import EditorPanel, { type EditorTab } from "./EditorPanel.tsx";
 import OutputPanel from "./OutputPanel.tsx";
+import ReadmeMonacoPanel from "./ReadmeMonacoPanel.tsx";
+
+const DEFAULT_LUA = `-- Type Lua code here\nprint("Hello World")`;
 
 type Submission = {
   id: string;
@@ -28,12 +32,51 @@ function MainPage() {
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
 
-  const [code, setCode] = useState<string>(
-    `-- Type Lua code here\nprint("Hello World")`
-  );
+  const [editorTabs, setEditorTabs] = useState<EditorTab[]>([
+    { id: "main", label: "solution.lua", source: DEFAULT_LUA },
+  ]);
+  const [activeEditorTab, setActiveEditorTab] = useState("main");
+  const [nextUntitled, setNextUntitled] = useState(1);
 
   const [output, setOutput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+
+  const activeSource = useMemo(
+    () => editorTabs.find((t) => t.id === activeEditorTab)?.source ?? "",
+    [editorTabs, activeEditorTab]
+  );
+
+  const onTabSourceChange = useCallback((tabId: string, source: string) => {
+    setEditorTabs((prev) =>
+      prev.map((t) => (t.id === tabId ? { ...t, source } : t))
+    );
+  }, []);
+
+  const onNewTab = useCallback(() => {
+    const n = nextUntitled;
+    setNextUntitled((x) => x + 1);
+    const id = `untitled-${Date.now()}`;
+    const label = `Untitled-${n}.lua`;
+    setEditorTabs((prev) => [
+      ...prev,
+      { id, label, source: "-- New file\n" },
+    ]);
+    setActiveEditorTab(id);
+  }, [nextUntitled]);
+
+  const onCloseTab = useCallback((tabId: string) => {
+    setEditorTabs((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((t) => t.id !== tabId);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (editorTabs.length === 0) return;
+    if (!editorTabs.some((t) => t.id === activeEditorTab)) {
+      setActiveEditorTab(editorTabs[0].id);
+    }
+  }, [editorTabs, activeEditorTab]);
 
   useEffect(() => {
     const fetchChallenge = async () => {
@@ -103,7 +146,7 @@ function MainPage() {
           },
           body: JSON.stringify({
             language: "lua",
-            source: code,
+            source: activeSource,
           }),
         }
       );
@@ -147,23 +190,43 @@ function MainPage() {
         </nav>
       </header>
 
-      <main className="main">
-        <ChallengePanel
-          title={challenge?.title || "Problem"}
-          description={
-            challenge?.description || 'Print "Hello World"'
-          }
-        />
+      <main className="main main-workspace">
+        <Allotment defaultSizes={[36, 64]} minSize={140}>
+          <Allotment.Pane
+            minSize={160}
+            className="workspace-pane workspace-panel ui-card ui-card--panel-shell"
+          >
+            <ReadmeMonacoPanel challenge={challenge} />
+          </Allotment.Pane>
 
-        <section className="editor">
-          <EditorPanel
-            code={code}
-            onChangeCode={setCode}
-            onSubmit={handleSubmit}
-            loading={loading}
-          />
-          <OutputPanel output={output} />
-        </section>
+          <Allotment.Pane minSize={240} className="workspace-pane">
+            <div className="editor-stack">
+              <Allotment vertical defaultSizes={[62, 38]} minSize={80}>
+                <Allotment.Pane
+                  minSize={160}
+                  className="workspace-pane workspace-panel ui-card ui-card--panel-shell"
+                >
+                  <EditorPanel
+                    tabs={editorTabs}
+                    activeTabId={activeEditorTab}
+                    onActiveTabChange={setActiveEditorTab}
+                    onTabSourceChange={onTabSourceChange}
+                    onNewTab={onNewTab}
+                    onCloseTab={onCloseTab}
+                    onSubmit={handleSubmit}
+                    loading={loading}
+                  />
+                </Allotment.Pane>
+                <Allotment.Pane
+                  minSize={100}
+                  className="workspace-pane workspace-panel ui-card ui-card--panel-shell"
+                >
+                  <OutputPanel output={output} />
+                </Allotment.Pane>
+              </Allotment>
+            </div>
+          </Allotment.Pane>
+        </Allotment>
       </main>
     </div>
   );

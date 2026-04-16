@@ -26,7 +26,7 @@ function ForgotPassword() {
   };
 
   return (
-    <div className="login">
+    <div className="auth-page">
       <h2>Forgot Password</h2>
 
       <form onSubmit={handleSubmit}>
@@ -41,7 +41,7 @@ function ForgotPassword() {
         <button type="submit">Send Reset Link</button>
       </form>
 
-      {message && <p>{message}</p>}
+      {message && <p className="auth-message">{message}</p>}
     </div>
   );
 }

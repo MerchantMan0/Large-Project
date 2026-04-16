@@ -45,7 +45,7 @@ function Register() {
   };
 
   return (
-    <div className="register">
+    <div className="auth-page">
       <h2>Register</h2>
 
       <form onSubmit={handleRegister}>
@@ -93,18 +93,14 @@ function Register() {
       </form>
 
       {user_id && (
-        <p style={{ color: "green" }}>
+        <p className="auth-message auth-message--success">
           Registered user ID: {user_id}
         </p>
       )}
 
-      {success && (
-        <p style={{ color: "#4ade80", marginTop: "1rem" }}>
-          {success}
-        </p>
-      )}
+      {success && <p className="auth-message auth-message--success">{success}</p>}
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="auth-message auth-message--error">{error}</p>}
     </div>
   );
 }
