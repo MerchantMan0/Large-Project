@@ -390,6 +390,18 @@ class _MainPageState extends State<MainPage>
                   side: const BorderSide(color: Color(0xFF475569)),
                 ),
               ),
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/history');
+                },
+                icon: const Icon(Icons.history),
+                label: const Text('History'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF475569)),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
