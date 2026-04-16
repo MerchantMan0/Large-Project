@@ -6,12 +6,13 @@ import { API_BASE } from "./apiBase.ts";
 type Submission = {
   id: string;
   status: string;
+  language: string;
   metrics: {
     gas: number;
     memory_bytes: number;
     lines: number;
   };
-  language: string;
+  console?: string[];
 };
 
 type Challenge = {
@@ -66,9 +67,11 @@ function MainPage() {
         const data: Submission = await res.json();
 
         setOutput(
-          `Status: ${data.status}\n\n` +
-            JSON.stringify(data.metrics, null, 2)
+          data.console?.length
+            ? `Console Output:\n${data.console.join("\n")}`
+            : "Console Output:\n(no output yet)"
         );
+
 
         if (data.status !== "queued") {
           clearInterval(interval);
@@ -109,8 +112,9 @@ function MainPage() {
       const data: Submission = await res.json();
 
       setOutput(
-        `Submission created!\nID: ${data.id}\nStatus: ${data.status}\n\nPolling...`
+        `Submission created!\nStatus: ${data.status}\n\nPolling...`
       );
+
 
       pollSubmission(data.id);
     } catch (err) {
