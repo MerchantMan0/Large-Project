@@ -416,7 +416,6 @@
 .workspace-panel .leaderboard-workspace-surface {
   flex: 1;
   min-height: 0;
-  overflow: auto;
   border-radius: 0;
   border: 1px solid var(--ws-border);
   background: var(--ws-monaco-bg);
@@ -424,6 +423,81 @@
   padding: 10px;
   font-size: 14px;
   line-height: 1.5;
+}
+
+.workspace-panel .account-workspace-surface {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-panel .leaderboard-workspace-surface {
+  overflow: auto;
+}
+
+.workspace-panel .account-workspace-header {
+  flex-shrink: 0;
+}
+
+.workspace-panel .account-history-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ws-border);
+}
+
+.workspace-panel .account-history-section > .account-workspace-subheading {
+  flex-shrink: 0;
+}
+
+.workspace-panel .account-history-box {
+  flex: 1;
+  min-height: 0;
+  margin-top: 8px;
+  overflow: auto;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-tab-bar-bg);
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ws-border) var(--ws-tab-bar-bg);
+}
+
+.workspace-panel .account-history-box::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.workspace-panel .account-history-box::-webkit-scrollbar-track {
+  background: var(--ws-tab-bar-bg);
+}
+
+.workspace-panel .account-history-box::-webkit-scrollbar-thumb {
+  background: var(--ws-border);
+  border-radius: var(--radius-sm);
+}
+
+.workspace-panel .account-history-box::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-metric-hover);
+}
+
+.workspace-panel .account-history-box::-webkit-scrollbar-corner {
+  background: var(--ws-tab-bar-bg);
+}
+
+.workspace-panel .account-history-box .account-table-wrap {
+  margin-top: 0;
+  border: none;
+  background: transparent;
+  overflow: visible;
+}
+
+.workspace-panel .account-history-load-more {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 13px;
 }
 
 .workspace-panel .account-workspace-muted,
@@ -455,6 +529,10 @@
 
 .workspace-panel .account-workspace-subheading--section {
   margin-top: 4px;
+}
+
+.workspace-panel .account-history-section .account-workspace-subheading--section {
+  margin-top: 0;
 }
 
 .workspace-panel .account-user-id {
