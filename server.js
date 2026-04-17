@@ -135,6 +135,7 @@ const transporter = nodemailer.createTransport({
 })
 
 async function sendVerificationEmail(toEmail, token) {
+  if (!process.env.SMTP_HOST) return
   const link = `${process.env.APP_URL}/auth/verify-email?token=${token}`
   await transporter.sendMail({
     from:    process.env.EMAIL_FROM || process.env.SMTP_USER,
@@ -145,6 +146,7 @@ async function sendVerificationEmail(toEmail, token) {
 }
  
 async function sendPasswordResetEmail(toEmail, token) {//work on
+  if (!process.env.SMTP_HOST) return
   const link = `${process.env.FRONTEND_URL || process.env.APP_URL}/reset-password?token=${token}`
   await transporter.sendMail({
     from:    process.env.EMAIL_FROM || process.env.SMTP_USER,
@@ -682,9 +684,10 @@ app.post('/challenges/:challenge_id/submissions', requireBearer, async (req, res
     const hexId = r.insertedId.toHexString()
     const saved = await db.collection(COLLECTION_SUBMISSIONS).findOne({ _id: r.insertedId })
     setImmediate(() => {
-      processSubmissionEvaluation(db, hexId).catch((err) =>
-        console.error('processSubmissionEvaluation', err),
-      )
+      processSubmissionEvaluation(db, hexId).catch((err) => {
+        if (err.name === 'MongoClientClosedError') return
+        console.error('processSubmissionEvaluation', err)
+      })
     })
     res.status(200).json({ ...submissionToApiDetail(saved), language })
   } catch (e) {
@@ -841,7 +844,7 @@ async function start(options = {}) {
 
   try {
     await client.connect()
-    console.log('Connected to MongoDB')
+    if (process.env.NODE_ENV !== 'test') console.log('Connected to MongoDB')
 
     //unique index on email
     await mongoDb().collection('users').createIndex({ email: 1 }, { unique: true })

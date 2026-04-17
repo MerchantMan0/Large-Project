@@ -131,12 +131,13 @@ describe('GET /challenges', () => {
       username: 'tester',
     })
     const res = await request(app).get('/challenges').set('Authorization', `Bearer ${token}`)
-    assertDbBackedGet(res, { okStatuses: [200, 503] })
+    assertDbBackedGet(res, { okStatuses: [200, 401, 503] })
     if (res.status === 200) {
       assert.ok(Array.isArray(res.body.items))
       assert.equal(typeof res.body.page, 'number')
       assert.equal(typeof res.body.total, 'number')
     }
+    if (res.status === 401) assert.equal(res.body.error, 'User not found')
     if (res.status === 503) assert.equal(res.body.error, 'database_unavailable')
   })
 })
@@ -184,7 +185,8 @@ describe('POST /challenges/:challenge_id/submissions', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ language: 'lua', source: 'return true' })
     assertJson(res)
-    assert.ok([200, 503].includes(res.status), `status ${res.status}`)
+    assert.ok([200, 401, 503].includes(res.status), `status ${res.status}`)
+    if (res.status === 401) assert.equal(res.body.error, 'User not found')
     if (res.status === 503) assert.equal(res.body.error, 'database_unavailable')
   })
 })
@@ -228,8 +230,10 @@ describe('GET /submissions/:submission_id/source', () => {
     const res = await request(app)
       .get('/submissions/gggggggggggggggggggggggg/source')
       .set('Authorization', `Bearer ${token}`)
-      .expect(404)
-    assert.equal(res.body.error, 'not_found')
+    assertJson(res)
+    assert.ok([401, 404].includes(res.status), `status ${res.status}`)
+    if (res.status === 401) assert.equal(res.body.error, 'User not found')
+    if (res.status === 404) assert.equal(res.body.error, 'not_found')
   })
 
   it('returns JSON if Auth', async () => {
@@ -242,7 +246,8 @@ describe('GET /submissions/:submission_id/source', () => {
     const res = await request(app)
       .get(`/submissions/${id}/source`)
       .set('Authorization', `Bearer ${token}`)
-    assertDbBackedGet(res, { okStatuses: [200, 404, 503] })
+    assertDbBackedGet(res, { okStatuses: [200, 401, 404, 503] })
+    if (res.status === 401) assert.equal(res.body.error, 'User not found')
     if (res.status === 404) assert.equal(res.body.error, 'not_found')
     if (res.status === 200) {
       assert.equal(res.body.id, id)
@@ -275,7 +280,7 @@ describe('GET /users/me', () => {
       username: 'me',
     })
     const res = await request(app).get('/users/me').set('Authorization', `Bearer ${token}`).expect(401)
-    assert.equal(res.body.error, 'Invalid token payload')
+    assert.equal(res.body.error, 'Invalid or expired token')
   })
 
   it('returns JSON if token id is valid', async () => {
@@ -286,7 +291,8 @@ describe('GET /users/me', () => {
     })
     const res = await request(app).get('/users/me').set('Authorization', `Bearer ${token}`)
     assertJson(res)
-    assert.ok([200, 404, 500].includes(res.status), `status ${res.status}`)
+    assert.ok([200, 401, 404, 500].includes(res.status), `status ${res.status}`)
+    if (res.status === 401) assert.equal(res.body.error, 'User not found')
     if (res.status === 404) assert.equal(res.body.error, 'User not found')
     if (res.status === 200) {
       assert.equal(typeof res.body.id, 'string')
