@@ -739,11 +739,13 @@ app.get('/users/:user_id/submissions', async (req, res) => {
     res.status(503).json({ error: 'database_unavailable' })
   }
 })
-async function start() {
+async function start(options = {}) {
+  const listen = options.listen !== false
+
   try {
     await client.connect()
     console.log('Connected to MongoDB')
-    
+
     //unique index on email
     await client.db().collection('users').createIndex({ email: 1 }, { unique: true })
 
@@ -753,14 +755,19 @@ async function start() {
     //index for leaderboard
     await mongoDb().collection(COLLECTION_SUBMISSIONS).createIndex({ challenge_id: 1, status: 1, 'metrics.gas': 1 })
     await mongoDb().collection(COLLECTION_SUBMISSIONS).createIndex({ status: 1, 'metrics.gas': 1 })
-
   } catch (e) {
     console.error('MongoDB connection failed:', e)
   }
 
-  app.listen(5000, () => {
-    console.log('Server listening on port 5000')
-  })
+  if (listen) {
+    app.listen(5000, () => {
+      console.log('Server listening on port 5000')
+    })
+  }
 }
 
-start().catch(console.error)
+if (require.main === module) {
+  start().catch(console.error)
+}
+
+module.exports = { app, start, client }
