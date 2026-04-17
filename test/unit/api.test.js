@@ -5,7 +5,7 @@ const request = require('supertest')
 const jwt = require('jsonwebtoken')
 const { ObjectId } = require('mongodb')
 
-const app = require('../../server')
+const { app } = require('../../server')
 
 afterAll(async () => {
   await app.closeMongo()
