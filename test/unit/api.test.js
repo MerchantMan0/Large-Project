@@ -1,14 +1,13 @@
 'use strict'
 
-const { describe, it, after } = require('node:test')
 const assert = require('node:assert/strict')
 const request = require('supertest')
 const jwt = require('jsonwebtoken')
 const { ObjectId } = require('mongodb')
 
-const app = require('../server')
+const app = require('../../server')
 
-after(async () => {
+afterAll(async () => {
   await app.closeMongo()
 })
 
