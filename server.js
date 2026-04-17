@@ -25,14 +25,17 @@ function iso(d) {
   return d instanceof Date && !Number.isNaN(d.getTime()) ? d.toISOString() : null
 }
 
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
 async function buildLeaderboard(coll, matchFilter, metric, sort, page, pageSize, search) {
   const skip = (page - 1) * pageSize
-
-  //fetch all accepted submissions sorted by metric
+ 
   const pipeline = [
     { $match: { ...matchFilter, status: 'accepted' } },
+    //sort by metric first, then submitted at for tie-breaking
     { $sort: { [`metrics.${metric}`]: sort, submitted_at: 1 } },
-    //best submission per user
     { $group: {
       _id:           '$user_id',
       submission_id: { $first: '$_id' },
@@ -40,22 +43,36 @@ async function buildLeaderboard(coll, matchFilter, metric, sort, page, pageSize,
       metrics:       { $first: '$metrics' },
       submitted_at:  { $first: '$submitted_at' },
     }},
-    { $sort: { [`metrics.${metric}`]: sort } },
+    //after grouping, resort
+    { $sort: { [`metrics.${metric}`]: sort, submitted_at: 1 } },
   ]
-
-  //fetch rows
+ 
   const allRows = await coll.aggregate(pipeline).toArray()
-
-  //assign ranks in memory
-  const ranked = allRows.map((row, i) => ({
-    rank:          i + 1,
-    submission_id: row.submission_id.toHexString(),
-    user:          { id: row._id, display_name: row.display_name || row._id },
-    metrics:       normalizeMetrics(row.metrics),
-    submitted_at:  iso(row.submitted_at),
-  }))
-
-  //apply search IN memory
+ 
+  //assign in memory
+  //two users tied at rank 1 means next user is rank 3
+  const ranked = []
+  let currentRank = 1
+  for (let i = 0; i < allRows.length; i++) {
+    const row = allRows[i]
+    const prev = allRows[i - 1]
+ 
+    //tie logic
+    const isTie = prev &&
+      normalizeMetrics(row.metrics)[metric] === normalizeMetrics(prev.metrics)[metric] &&
+      iso(row.submitted_at) === iso(prev.submitted_at)
+ 
+    if (!isTie) currentRank = i + 1
+ 
+    ranked.push({
+      rank:          currentRank,
+      submission_id: row.submission_id.toHexString(),
+      user:          { id: row._id, display_name: row.display_name || row._id },
+      metrics:       normalizeMetrics(row.metrics),
+      submitted_at:  iso(row.submitted_at),
+    })
+  }
+ 
   const filtered = search ? ranked.filter(item => {
     const numeric = parseFloat(search)
     const nameMatch = item.user.display_name.toLowerCase().includes(search.toLowerCase())
@@ -66,10 +83,10 @@ async function buildLeaderboard(coll, matchFilter, metric, sort, page, pageSize,
     )
     return nameMatch || metricMatch
   }) : ranked
-
+ 
   const total = filtered.length
   const items = filtered.slice(skip, skip + pageSize)
-
+ 
   return { items, total }
 }
 
@@ -101,7 +118,7 @@ function submissionToApiListItem(doc) {
     id: doc._id.toHexString(),
     challenge_id: doc.challenge_id,
     user_id: doc.user_id,
-    display_name: doc.display_name != null ? String(doc.display_name) : 'Mockable User',
+    display_name: doc.display_name != null ? String(doc.display_name) : 'unknown',
     language: doc.language,
     status: doc.status,
     submitted_at: iso(doc.submitted_at),
@@ -127,8 +144,8 @@ async function sendVerificationEmail(toEmail, token) {
   })
 }
  
-async function sendPasswordResetEmail(toEmail, token) {
-  const link = `${process.env.APP_URL}/auth/reset-password?token=${token}`
+async function sendPasswordResetEmail(toEmail, token) {//work on
+  const link = `${process.env.FRONTEND_URL || process.env.APP_URL}/reset-password?token=${token}`
   await transporter.sendMail({
     from:    process.env.EMAIL_FROM || process.env.SMTP_USER,
     to:      toEmail,
@@ -171,13 +188,39 @@ app.use((req, res, next) => {
 })
 
 //jwt
-function requireBearer(req, res, next) {
+async function requireBearer(req, res, next) {
   const auth = req.headers.authorization
   if (!auth || !String(auth).startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Bearer token required' })
   }
+
+  const token = auth.slice(7)
+
   try {
-    req.user = jwt.verify(auth.slice(7), process.env.JWT_SECRET)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+    const db = mongoDb()
+
+    //check denylist
+    const denied = await db.collection('token_denylist').findOne({ token })
+    if (denied) {
+      return res.status(401).json({ error: 'Token revoked' })
+    }
+
+    //check password change invalidation
+    const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.id) })
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' })
+    }
+
+    if (user.password_changed_at) {
+      const tokenIssuedAt = decoded.iat * 1000
+      if (tokenIssuedAt < new Date(user.password_changed_at).getTime()) {
+        return res.status(401).json({ error: 'Token expired due to password change' })
+      }
+    }
+
+    req.user = decoded
     next()
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' })
@@ -271,7 +314,7 @@ app.post('/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'password must be at least 8 characters' })
     }
  
-    const users = client.db().collection('users')
+    const users = mongoDb().collection('users')
     const existing = await users.findOne({ email: email.toLowerCase() })
     if (existing) {
       return res.status(409).json({ error: 'email already registered' })
@@ -312,17 +355,37 @@ app.get('/auth/verify-email', async (req, res) => {
     const { token } = req.query
     if (!token) return res.status(400).json({ error: 'token is required' })
  
-    const users = client.db().collection('users')
+    const users = mongoDb().collection('users')
     const user  = await users.findOne({ verification_token: token })
  
-    if (!user)              return res.status(400).json({ error: 'Invalid or expired verification token' })
-    if (user.email_verified) return res.status(200).json({ message: 'Email already verified' })
-    if (new Date() > user.verification_expires_at) return res.status(400).json({ error: 'Verification token has expired' })
+    //token not found
+    if (!user) {
+      // check for verified user
+      return res.status(400).json({ error: 'Invalid or expired verification token. If you already verified, try logging in.' })
+    }
  
-    await users.updateOne(
-      { _id: user._id },
+    //already verified case
+    if (user.email_verified) {
+      return res.status(200).json({ message: 'Email already verified. You can log in.' })
+    }
+ 
+    // Token expired
+    if (new Date() > new Date(user.verification_expires_at)) {
+      return res.status(400).json({ error: 'Verification token has expired. Please request a new one.' })
+    }
+ 
+    //checks passed
+    const updateResult = await users.updateOne(
+      //update if token not expired, and user not verified
+      { _id: user._id, verification_token: token, email_verified: false },
       { $set: { email_verified: true }, $unset: { verification_token: '', verification_expires_at: '' } },
     )
+ 
+    if (updateResult.modifiedCount === 0) {
+      //race condition (lol os and distributed prll knowledge)
+      return res.status(200).json({ message: 'Email verified. You can now log in.' })
+    }
+ 
     return res.status(200).json({ message: 'Email verified. You can now log in.' })
   } catch (err) {
     console.error('GET /auth/verify-email error:', err)
@@ -378,7 +441,7 @@ app.post('/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'email and password are required' })
     }
  
-    const users = client.db().collection('users')
+    const users = mongoDb().collection('users')
     const user  = await users.findOne({ email: email.toLowerCase() })
  
     //run bcrypt, prevent timing attacks
@@ -427,31 +490,40 @@ app.post('/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body
     if (!email) return res.status(400).json({ error: 'email is required' })
- 
-    // Rate limit: 3 per hour per email
+
     if (!checkRateLimit(`reset:${email.toLowerCase()}`, 3, 60 * 60 * 1000)) {
       return res.status(429).json({ error: 'Too many requests. Please wait before requesting another reset email.' })
     }
- 
+
     const users = mongoDb().collection('users')
     const user  = await users.findOne({ email: email.toLowerCase() })
- 
-    //200 code
+
     if (user) {
-      const resetToken     = crypto.randomBytes(32).toString('hex')
+      const rawToken = crypto.randomBytes(32).toString('hex')
+      const hashedToken = hashToken(rawToken)
+
       const resetExpiresAt = new Date(Date.now() + 60 * 60 * 1000)
+
       await users.updateOne(
         { _id: user._id },
-        { $set: { reset_token: resetToken, reset_expires_at: resetExpiresAt } },
+        {
+          $set: {
+            reset_token: hashedToken,
+            reset_expires_at: resetExpiresAt,
+          },
+        },
       )
+
       try {
-        await sendPasswordResetEmail(user.email, resetToken)
+        await sendPasswordResetEmail(user.email, rawToken)//raw token
       } catch (mailErr) {
         console.error('sendPasswordResetEmail failed:', mailErr)
       }
     }
- 
-    return res.status(200).json({ message: 'If that email exists, a reset link has been sent.' })
+
+    return res.status(200).json({
+      message: 'If that email exists, a reset link has been sent.',
+    })
   } catch (err) {
     console.error('POST /auth/forgot-password error:', err)
     return res.status(500).json({ error: 'Internal server error' })
@@ -461,19 +533,40 @@ app.post('/auth/forgot-password', async (req, res) => {
 app.post('/auth/reset-password', async (req, res) => {
   try {
     const { token, new_password } = req.body
+
     if (!token || !new_password || new_password.length < 8) {
       return res.status(400).json({ error: 'token and new_password (min 8 chars) are required' })
     }
-    const users = client.db().collection('users')
-    const user  = await users.findOne({ reset_token: token })
-    if (!user || new Date() > user.reset_expires_at) {
+
+    const users = mongoDb().collection('users')
+
+    const hashedToken = hashToken(token)
+    const hashedPassword = await bcrypt.hash(new_password, 12)
+
+    const result = await users.updateOne(
+      {
+        reset_token: hashedToken,
+        reset_expires_at: { $gt: new Date() },
+      },
+      {
+        $set: {
+          password: hashedPassword,
+          password_changed_at: new Date(),
+        },
+        $unset: {
+          reset_token: '',
+          reset_expires_at: '',
+        },
+      },
+    )
+
+    if (result.modifiedCount === 0) {
       return res.status(400).json({ error: 'Invalid or expired reset token' })
     }
-    await users.updateOne(
-      { _id: user._id },
-      { $set: { password: await bcrypt.hash(new_password, 12) }, $unset: { reset_token: '', reset_expires_at: '' } },
-    )
-    return res.status(200).json({ message: 'Password reset successfully. You can now log in.' })
+
+    return res.status(200).json({
+      message: 'Password reset successfully. You can now log in.',
+    })
   } catch (err) {
     console.error('POST /auth/reset-password error:', err)
     return res.status(500).json({ error: 'Internal server error' })
@@ -621,9 +714,7 @@ app.get('/submissions/:submission_id', async (req, res) => {
   }
   try {
     const doc = await mongoDb().collection(COLLECTION_SUBMISSIONS).findOne({ _id: oid })
-    if (!doc) {
-      return res.status(404).json({ error: 'not_found' })
-    }
+    if (!doc) return res.status(404).json({ error: 'not_found' })
     res.status(200).json(submissionToApiDetail(doc))
   } catch (e) {
     console.error(e)
@@ -640,14 +731,20 @@ app.get('/submissions/:submission_id/source', requireBearer, async (req, res) =>
     return res.status(404).json({ error: 'not_found' })
   }
   try {
-    const doc = await mongoDb().collection(COLLECTION_SUBMISSIONS).findOne({ _id: oid })
-    if (!doc) {
-      return res.status(404).json({ error: 'not_found' })
+    const db  = mongoDb()
+    const doc = await db.collection(COLLECTION_SUBMISSIONS).findOne({ _id: oid })
+    if (!doc) return res.status(404).json({ error: 'not_found' })
+ 
+    //check if challenge is live
+    const challenge = await db.collection(COLLECTION_CHALLENGES).findOne({ id: doc.challenge_id })
+    if (challenge && challenge.status === 'open') {
+      return res.status(403).json({ error: 'Source is not available while the challenge is live' })
     }
+ 
     res.status(200).json({
       id,
       language: doc.language,
-      source: doc.source != null ? String(doc.source) : '',
+      source:   doc.source != null ? String(doc.source) : '',
     })
   } catch (e) {
     console.error(e)
@@ -747,10 +844,10 @@ async function start(options = {}) {
     console.log('Connected to MongoDB')
 
     //unique index on email
-    await client.db().collection('users').createIndex({ email: 1 }, { unique: true })
+    await mongoDb().collection('users').createIndex({ email: 1 }, { unique: true })
 
     //auto delete expired denylist tokens
-    await client.db().collection('token_denylist').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
+    await mongoDb().collection('token_denylist').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
 
     //index for leaderboard
     await mongoDb().collection(COLLECTION_SUBMISSIONS).createIndex({ challenge_id: 1, status: 1, 'metrics.gas': 1 })
