@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@johnnymorganz/stylua": "^2.4.0",
     "axios": "^1.13.6",
     "bcrypt": "^6.0.0",
     "body-parser": "^1.20.4",
