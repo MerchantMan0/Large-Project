@@ -1,17 +1,16 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { API_BASE } from "./apiBase.ts";
+import { API_BASE } from "../apiBase.ts";
 
 function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const verificationToken = searchParams.get("token");
 
   const [status, setStatus] = useState("Verifying...");
 
   useEffect(() => {
-    const token = searchParams.get("token");
-
-    if (!token) {
+    if (!verificationToken) {
       setStatus("Invalid verification link");
       return;
     }
@@ -19,14 +18,14 @@ function VerifyEmail() {
     const run = async () => {
       try {
         const res = await fetch(
-          `${API_BASE}/auth/verify-email?token=${token}`
+          `${API_BASE}/auth/verify-email?token=${verificationToken}`
         );
 
         const data = await res.json();
 
         if (res.ok) {
-          setStatus("Email verified! Redirecting to login...");
-          setTimeout(() => navigate("/"), 2000);
+          setStatus("Email verified! Redirecting...");
+          setTimeout(() => navigate("/main", { replace: true }), 2000);
         } else {
           setStatus(data.error || "Verification failed");
         }
@@ -36,12 +35,12 @@ function VerifyEmail() {
     };
 
     run();
-  }, []);
+  }, [navigate, verificationToken]);
 
   return (
-    <div className="login">
+    <div className="auth-page">
       <h2>Email Verification</h2>
-      <p>{status}</p>
+      <p className="auth-message">{status}</p>
     </div>
   );
 }

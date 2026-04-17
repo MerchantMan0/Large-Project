@@ -1,0 +1,608 @@
+.app-grid {
+  display: grid;
+  grid-template-rows: 60px minmax(0, 1fr);
+  height: 100vh;
+  background: var(--color-bg-app);
+  color: var(--color-text);
+}
+
+.header {
+  background: var(--color-surface-panel);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  height: 60px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.header-nav {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+.header button {
+  padding: 8px 12px;
+  border-radius: 0;
+  border: 1px solid var(--color-header-button-border);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.header button:hover {
+  background: var(--color-header-button-hover);
+}
+
+.main.main-workspace {
+  min-height: 0;
+  padding: 1rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  --separator-border: rgba(148, 163, 184, 0.35);
+  --focus-border: var(--color-accent);
+}
+
+.main-workspace > .split-view.split-view-horizontal {
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-pane {
+  min-height: 0;
+  height: 100%;
+}
+
+/* Workspace theming tokens (Flutter MenuScreen palette) */
+.workspace-panel {
+  --ws-tab-bar-bg: var(--color-workspace-tab-bg);
+  --ws-tab-active-bg: var(--color-workspace-surface);
+  --ws-monaco-bg: var(--color-workspace-surface);
+  --ws-border: var(--color-border-workspace);
+  --ws-tab-text: var(--color-tab-row-muted);
+  --ws-tab-text-active: var(--color-text);
+  --ws-tab-new-text: var(--color-tab-new-muted);
+  --ws-indicator: var(--color-text);
+  --ws-tab-row-hover: #1e293b;
+  --ws-submit-bg: var(--color-accent-solid);
+  --ws-submit-hover: var(--color-accent-hover);
+  --ws-output-text: var(--color-text);
+}
+
+/* Main workspace: README / editor / output */
+.readme-editor-inner,
+.editor-panel-inner,
+.output-panel-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.readme-editor-inner--stretch {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+.readme-editor-tabstrip,
+.editor-tabs-toolbar-row {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.readme-editor-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+}
+
+.editor-tabs-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-tabs-list {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.editor-tab-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.editor-tab-label {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 0;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.editor-tab-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+
+.editor-tab-new {
+  flex-shrink: 0;
+  width: 2rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.editor-tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-tab-content[data-state="inactive"] {
+  display: none;
+}
+
+.editor-monaco-host {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.readme-monaco-wrap,
+.editor-monaco-wrap {
+  flex: 1;
+  min-height: 0;
+  margin-top: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.readme-monaco-wrap .monaco-editor,
+.readme-monaco-wrap .monaco-editor .overflow-guard,
+.editor-monaco-wrap .monaco-editor,
+.editor-monaco-wrap .monaco-editor .overflow-guard {
+  border-radius: 0;
+}
+
+.editor-toolbar--float {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.editor-toolbar--float button {
+  pointer-events: auto;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.editor-toolbar button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.workspace-panel .readme-editor-inner,
+.workspace-panel .editor-panel-inner,
+.workspace-panel .output-panel-inner {
+  gap: 12px;
+}
+
+.workspace-panel .readme-editor-tabstrip,
+.workspace-panel .editor-tabs-toolbar-row {
+  background: var(--ws-tab-bar-bg);
+  border-bottom: 1px solid var(--ws-border);
+}
+
+.workspace-panel .readme-editor-tab {
+  background: var(--ws-tab-active-bg);
+  color: var(--ws-tab-text-active);
+  border-right: 1px solid var(--ws-border);
+  font-size: 14px;
+  box-shadow: inset 0 -2px 0 var(--ws-indicator);
+}
+
+.workspace-panel .editor-tab-trigger {
+  background: var(--ws-tab-bar-bg);
+  border-right: 1px solid var(--ws-border);
+  color: var(--ws-tab-text);
+  font-size: 14px;
+}
+
+.workspace-panel .editor-tab-trigger[data-state="active"] {
+  background: var(--ws-tab-active-bg);
+  color: var(--ws-tab-text-active);
+  box-shadow: inset 0 -2px 0 var(--ws-indicator);
+}
+
+.workspace-panel .editor-tab-trigger:focus-visible {
+  outline: 2px solid var(--ws-indicator);
+  outline-offset: -2px;
+}
+
+.workspace-panel .editor-tab-new {
+  background: var(--ws-tab-bar-bg);
+  border-left: 1px solid var(--ws-border);
+  color: var(--ws-tab-new-text);
+}
+
+.workspace-panel .editor-tab-new:hover {
+  background: var(--ws-tab-row-hover);
+  color: var(--ws-tab-text-active);
+}
+
+.workspace-panel .readme-monaco-wrap,
+.workspace-panel .editor-monaco-wrap {
+  background-color: var(--ws-monaco-bg);
+  border: 1px solid var(--ws-border);
+}
+
+.workspace-panel .readme-monaco-wrap .monaco-editor,
+.workspace-panel .readme-monaco-wrap .monaco-editor-background,
+.workspace-panel .readme-monaco-wrap .margin,
+.workspace-panel .editor-monaco-wrap .monaco-editor,
+.workspace-panel .editor-monaco-wrap .monaco-editor-background,
+.workspace-panel .editor-monaco-wrap .margin {
+  background-color: var(--ws-monaco-bg) !important;
+}
+
+.workspace-panel .output-panel-inner--tab {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-panel .output-panel-title {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--color-tab-row-muted);
+}
+
+.workspace-panel .output-panel-board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ws-border);
+  border-radius: 0;
+  background: var(--ws-monaco-bg);
+  overflow: hidden;
+}
+
+.workspace-panel .output-panel-metrics-head {
+  flex-shrink: 0;
+  margin: 10px 14px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ws-border);
+}
+
+.workspace-panel .output-panel-board .output-panel-metrics-row {
+  flex-shrink: 0;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.workspace-panel .output-panel-board .output-panel-pre {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  color: var(--ws-output-text);
+  font-size: 14px;
+  font-family: monospace;
+  line-height: 1.5;
+}
+
+.workspace-panel .output-panel-run-status {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin: 0;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--ws-border);
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.workspace-panel .output-panel-run-status-label {
+  color: var(--color-tab-row-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.workspace-panel .output-panel-run-status-value {
+  font-weight: 600;
+}
+
+.workspace-panel .output-panel-run-status--success .output-panel-run-status-value {
+  color: var(--color-success-bright);
+}
+
+.workspace-panel .output-panel-run-status--error .output-panel-run-status-value {
+  color: var(--color-error);
+}
+
+.workspace-panel .output-panel-run-status--neutral .output-panel-run-status-value {
+  color: var(--ws-output-text);
+}
+
+.workspace-panel .output-panel-pre {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border-radius: 0;
+  background: var(--ws-monaco-bg);
+  border: 1px solid var(--ws-border);
+  color: var(--ws-output-text);
+  font-size: 14px;
+  font-family: monospace;
+  line-height: 1.5;
+}
+
+.workspace-panel .editor-toolbar--float button {
+  border: none;
+  border-radius: 0;
+  background: var(--ws-submit-bg);
+  color: var(--color-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  padding: 10px 16px;
+}
+
+.workspace-panel .editor-toolbar--float button:hover:not(:disabled) {
+  background: var(--ws-submit-hover);
+}
+
+/* Account & Leaderboard tabs — shared workspace chrome */
+.workspace-panel .account-embedded,
+.workspace-panel .leaderboard-embedded {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-panel .account-workspace-surface,
+.workspace-panel .leaderboard-workspace-surface {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 0;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-monaco-bg);
+  color: var(--ws-output-text);
+  padding: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.workspace-panel .account-workspace-muted,
+.workspace-panel .leaderboard-workspace-muted {
+  color: var(--color-tab-row-muted);
+  font-size: 14px;
+}
+
+.workspace-panel .account-workspace-muted {
+  margin: 0 0 10px;
+}
+
+.workspace-panel .leaderboard-workspace-muted {
+  margin: 0;
+}
+
+.workspace-panel .account-profile-block {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--ws-border);
+}
+
+.workspace-panel .account-workspace-subheading {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ws-output-text);
+}
+
+.workspace-panel .account-workspace-subheading--section {
+  margin-top: 4px;
+}
+
+.workspace-panel .account-user-id {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-tab-row-muted);
+  font-family: monospace;
+}
+
+.workspace-panel .account-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.workspace-panel .account-stat-cell {
+  border: 1px solid var(--ws-border);
+  border-radius: 0;
+  padding: 8px 6px;
+  background: var(--ws-tab-bar-bg);
+  text-align: center;
+}
+
+.workspace-panel .account-stat-value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: monospace;
+  color: var(--ws-output-text);
+}
+
+.workspace-panel .account-stat-label {
+  margin: 4px 0 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-tab-row-muted);
+}
+
+.workspace-panel .account-table-wrap,
+.workspace-panel .leaderboard-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--ws-border);
+  border-radius: 0;
+  background: var(--ws-monaco-bg);
+}
+
+.workspace-panel .account-table-wrap {
+  margin-top: 6px;
+}
+
+.workspace-panel .leaderboard-table-wrap {
+  margin-top: 0;
+}
+
+.workspace-panel .account-data-table,
+.workspace-panel .leaderboard-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.workspace-panel .account-data-table th,
+.workspace-panel .leaderboard-data-table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-tab-row-muted);
+  font-family: inherit;
+  background: var(--ws-tab-bar-bg);
+  border-bottom: 1px solid var(--ws-border);
+}
+
+.workspace-panel .account-data-table td,
+.workspace-panel .leaderboard-data-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ws-border);
+  color: var(--ws-output-text);
+}
+
+.workspace-panel .account-data-table tbody tr:last-child td,
+.workspace-panel .leaderboard-data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.workspace-panel .account-data-table tbody tr:hover,
+.workspace-panel .leaderboard-data-table tbody tr:hover {
+  background: var(--color-workspace-table-row-hover);
+}
+
+.workspace-panel .leaderboard-workspace-select,
+.workspace-panel .leaderboard-workspace-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 0;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-tab-bar-bg);
+  color: var(--ws-output-text);
+  font-size: 14px;
+  outline: none;
+}
+
+.workspace-panel .leaderboard-workspace-select {
+  cursor: pointer;
+}
+
+.workspace-panel .leaderboard-workspace-search::placeholder {
+  color: var(--color-tab-row-muted);
+}
+
+.workspace-panel .leaderboard-workspace-select:focus,
+.workspace-panel .leaderboard-workspace-search:focus {
+  outline: 2px solid var(--ws-indicator);
+  outline-offset: -2px;
+}
+
+.workspace-panel .leaderboard-metric-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.workspace-panel .leaderboard-metric-btn {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 0;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-tab-bar-bg);
+  color: var(--color-tab-row-muted);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.workspace-panel .leaderboard-metric-btn:hover {
+  background: var(--ws-tab-row-hover);
+  color: var(--ws-output-text);
+}
+
+.workspace-panel .leaderboard-metric-btn--active {
+  background: var(--ws-tab-active-bg);
+  color: var(--ws-output-text);
+  box-shadow: inset 0 -2px 0 var(--ws-indicator);
+}

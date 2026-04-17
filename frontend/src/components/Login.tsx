@@ -1,25 +1,24 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { API_BASE } from "./apiBase.ts";
+import { API_BASE } from "../apiBase.ts";
 
 type LoginProps = {
   setToken: React.Dispatch<React.SetStateAction<string | null>>;
+  onGoToRegister: () => void;
+  onGoToForgotPassword: () => void;
 };
 
 type LoginResponse = {
   access_token: string;
 };
 
-function Login({ setToken }: LoginProps) {
+function Login({
+  setToken,
+  onGoToRegister,
+  onGoToForgotPassword,
+}: LoginProps) {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
-
-  const navigate = useNavigate();
-
-  const goToRegister = () => {
-    navigate("/register");
-  };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,10 +38,6 @@ function Login({ setToken }: LoginProps) {
       const data: LoginResponse = await response.json();
       localStorage.setItem("token", data.access_token);
       setToken(data.access_token);
-
-      console.log("Logged in, token:", data.access_token);
-
-      navigate("/main");
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -53,9 +48,7 @@ function Login({ setToken }: LoginProps) {
   };
 
   return (
-    <div className="login">
-      <h2>Login</h2>
-
+    <div className="auth-page">
       <form onSubmit={handleLogin}>
         <div>
           <label>Email:</label>
@@ -87,19 +80,18 @@ function Login({ setToken }: LoginProps) {
 
         <button
           type="button"
-          onClick={goToRegister}
+          onClick={onGoToRegister}
           style={{ marginTop: "1rem" }}
         >
           Register
         </button>
 
-        <p className="forgot-password" onClick={() => navigate("/forgot-password")}>
+        <p className="forgot-password" onClick={onGoToForgotPassword}>
           Forgot Password?
         </p>
-
       </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="auth-message auth-message--error">{error}</p>}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { API_BASE } from "./apiBase.ts";
+import { API_BASE } from "../apiBase.ts";
 
 type Metric = "gas" | "memory_bytes" | "lines";
 
@@ -29,8 +28,6 @@ type Challenge = {
 };
 
 function Leaderboard() {
-  const navigate = useNavigate();
-
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [challengeId, setChallengeId] = useState<string>("");
 
@@ -56,7 +53,6 @@ function Leaderboard() {
         const items: Challenge[] = data.items || [];
         setChallenges(items);
 
-        // set default selected challenge
         if (items.length > 0) {
           setChallengeId(items[0].id);
         }
@@ -98,77 +94,71 @@ function Leaderboard() {
     return () => clearTimeout(timeout);
   }, [challengeId, search, metric]);
 
-  const getMetricLabel = () => {
-    if (metric === "gas") return "⚡ Gas";
-    if (metric === "memory_bytes") return "🧠 Memory";
-    return "📏 Lines";
-  };
-
   return (
-    <div className="app-grid">
-      <header className="header">
-        <h1>Lua Leetcode</h1>
+    <div className="leaderboard-embedded">
+      <div className="leaderboard-workspace-surface">
+        <select
+          value={challengeId}
+          onChange={(e) => setChallengeId(e.target.value)}
+          className="leaderboard-workspace-select"
+          aria-label="Challenge"
+        >
+          {challenges.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
 
-        <nav className="header-nav">
-          <button onClick={() => navigate("/main")}>Home</button>
-          <button onClick={() => navigate("/account")}>Account</button>
-        </nav>
-      </header>
-
-      <main className="leaderboard-page">
-        <div className="leaderboard-card">
-          <h2>{getMetricLabel()} Leaderboard</h2>
-
-          {/* Challenge Dropdown (DYNAMIC) */}
-          <select
-            value={challengeId}
-            onChange={(e) => setChallengeId(e.target.value)}
-            className="search-bar"
+        <div className="leaderboard-metric-row" role="tablist" aria-label="Metric">
+          <button
+            type="button"
+            className={
+              metric === "gas"
+                ? "leaderboard-metric-btn leaderboard-metric-btn--active"
+                : "leaderboard-metric-btn"
+            }
+            onClick={() => setMetric("gas")}
           >
-            {challenges.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
+             Gas
+          </button>
+          <button
+            type="button"
+            className={
+              metric === "memory_bytes"
+                ? "leaderboard-metric-btn leaderboard-metric-btn--active"
+                : "leaderboard-metric-btn"
+            }
+            onClick={() => setMetric("memory_bytes")}
+          >
+             Memory
+          </button>
+          <button
+            type="button"
+            className={
+              metric === "lines"
+                ? "leaderboard-metric-btn leaderboard-metric-btn--active"
+                : "leaderboard-metric-btn"
+            }
+            onClick={() => setMetric("lines")}
+          >
+             Lines
+          </button>
+        </div>
 
-          {/* Metric Tabs */}
-          <div className="metric-tabs">
-            <button
-              className={metric === "gas" ? "active" : ""}
-              onClick={() => setMetric("gas")}
-            >
-              ⚡ Gas
-            </button>
+        <input
+          type="text"
+          placeholder="Search users…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="leaderboard-workspace-search"
+        />
 
-            <button
-              className={metric === "memory_bytes" ? "active" : ""}
-              onClick={() => setMetric("memory_bytes")}
-            >
-              🧠 Memory
-            </button>
-
-            <button
-              className={metric === "lines" ? "active" : ""}
-              onClick={() => setMetric("lines")}
-            >
-              📏 Lines
-            </button>
-          </div>
-
-          {/* Search (SERVER-SIDE) */}
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-bar"
-          />
-
-          {loading ? (
-            <p style={{ color: "#cbd5e1" }}>Loading...</p>
-          ) : (
-            <table className="leaderboard-table">
+        {loading ? (
+          <p className="leaderboard-workspace-muted">Loading…</p>
+        ) : (
+          <div className="leaderboard-table-wrap">
+            <table className="leaderboard-data-table">
               <thead>
                 <tr>
                   <th>Rank</th>
@@ -176,7 +166,6 @@ function Leaderboard() {
                   <th>Value</th>
                 </tr>
               </thead>
-
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.submission_id}>
@@ -185,17 +174,15 @@ function Leaderboard() {
                         #{row.rank}
                       </span>
                     </td>
-
                     <td>{row.user.display_name}</td>
-
                     <td>{row.metrics[metric]}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
-      </main>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

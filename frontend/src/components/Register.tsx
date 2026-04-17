@@ -1,17 +1,17 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { API_BASE } from "./apiBase.ts";
+import { API_BASE } from "../apiBase.ts";
 
-function Register() {
+type RegisterProps = {
+  onBackToLogin: () => void;
+};
+
+function Register({ onBackToLogin }: RegisterProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
 
-  const [user_id, setUser_id] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +30,6 @@ function Register() {
         throw new Error(data.error || "Registration failed");
       }
 
-      setUser_id(data.user_id);
-
       setSuccess(
         "Account created! Check your email to verify your account before logging in."
       );
@@ -40,14 +38,8 @@ function Register() {
     }
   };
 
-  const goToLogin = () => {
-    navigate("/");
-  };
-
   return (
-    <div className="register">
-      <h2>Register</h2>
-
+    <div className="auth-page">
       <form onSubmit={handleRegister}>
         <div>
           <label>Username:</label>
@@ -85,26 +77,16 @@ function Register() {
 
         <button
           type="button"
-          onClick={goToLogin}
+          onClick={onBackToLogin}
           style={{ marginTop: "1rem" }}
         >
           Login
         </button>
       </form>
 
-      {user_id && (
-        <p style={{ color: "green" }}>
-          Registered user ID: {user_id}
-        </p>
-      )}
+      {success && <p className="auth-message auth-message--success">{success}</p>}
 
-      {success && (
-        <p style={{ color: "#4ade80", marginTop: "1rem" }}>
-          {success}
-        </p>
-      )}
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="auth-message auth-message--error">{error}</p>}
     </div>
   );
 }

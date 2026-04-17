@@ -1,6 +1,6 @@
-import { useState } from "react";
+import React, { useState, type FormEvent } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { API_BASE } from "./apiBase.ts";
+import { API_BASE } from "../apiBase.ts";
 
 function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -12,7 +12,7 @@ function ResetPassword() {
   const [confirm, setConfirm] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!token) {
@@ -41,7 +41,7 @@ function ResetPassword() {
 
       if (res.ok) {
         setMessage("Password reset successful! Redirecting...");
-        setTimeout(() => navigate("/"), 2000);
+        setTimeout(() => navigate("/main", { replace: true }), 2000);
       } else {
         setMessage(data.error || "Reset failed");
       }
@@ -52,7 +52,7 @@ function ResetPassword() {
   };
 
   return (
-    <div className="login">
+    <div className="auth-page">
       <h2>Reset Password</h2>
 
       <form onSubmit={handleSubmit}>
@@ -75,7 +75,7 @@ function ResetPassword() {
         <button type="submit">Reset Password</button>
       </form>
 
-      {message && <p>{message}</p>}
+      {message && <p className="auth-message">{message}</p>}
     </div>
   );
 }
