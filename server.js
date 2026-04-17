@@ -25,6 +25,10 @@ function iso(d) {
   return d instanceof Date && !Number.isNaN(d.getTime()) ? d.toISOString() : null
 }
 
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
 async function buildLeaderboard(coll, matchFilter, metric, sort, page, pageSize, search) {
   const skip = (page - 1) * pageSize
  
@@ -39,7 +43,7 @@ async function buildLeaderboard(coll, matchFilter, metric, sort, page, pageSize,
       metrics:       { $first: '$metrics' },
       submitted_at:  { $first: '$submitted_at' },
     }},
-    // After grouping, resort
+    //after grouping, resort
     { $sort: { [`metrics.${metric}`]: sort, submitted_at: 1 } },
   ]
  
@@ -141,7 +145,7 @@ async function sendVerificationEmail(toEmail, token) {
 }
  
 async function sendPasswordResetEmail(toEmail, token) {//work on
-  const link = `${process.env.APP_URL}/auth/reset-password?token=${token}`
+  const link = `${process.env.FRONTEND_URL || process.env.APP_URL}/reset-password?token=${token}`
   await transporter.sendMail({
     from:    process.env.EMAIL_FROM || process.env.SMTP_USER,
     to:      toEmail,
@@ -184,13 +188,39 @@ app.use((req, res, next) => {
 })
 
 //jwt
-function requireBearer(req, res, next) {
+async function requireBearer(req, res, next) {
   const auth = req.headers.authorization
   if (!auth || !String(auth).startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Bearer token required' })
   }
+
+  const token = auth.slice(7)
+
   try {
-    req.user = jwt.verify(auth.slice(7), process.env.JWT_SECRET)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+    const db = mongoDb()
+
+    //check denylist
+    const denied = await db.collection('token_denylist').findOne({ token })
+    if (denied) {
+      return res.status(401).json({ error: 'Token revoked' })
+    }
+
+    //check password change invalidation
+    const user = await db.collection('users').findOne({ _id: new ObjectId(decoded.id) })
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' })
+    }
+
+    if (user.password_changed_at) {
+      const tokenIssuedAt = decoded.iat * 1000
+      if (tokenIssuedAt < new Date(user.password_changed_at).getTime()) {
+        return res.status(401).json({ error: 'Token expired due to password change' })
+      }
+    }
+
+    req.user = decoded
     next()
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' })
@@ -460,31 +490,40 @@ app.post('/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body
     if (!email) return res.status(400).json({ error: 'email is required' })
- 
-    // Rate limit: 3 per hour per email
+
     if (!checkRateLimit(`reset:${email.toLowerCase()}`, 3, 60 * 60 * 1000)) {
       return res.status(429).json({ error: 'Too many requests. Please wait before requesting another reset email.' })
     }
- 
+
     const users = mongoDb().collection('users')
     const user  = await users.findOne({ email: email.toLowerCase() })
- 
-    //200 code
+
     if (user) {
-      const resetToken     = crypto.randomBytes(32).toString('hex')
+      const rawToken = crypto.randomBytes(32).toString('hex')
+      const hashedToken = hashToken(rawToken)
+
       const resetExpiresAt = new Date(Date.now() + 60 * 60 * 1000)
+
       await users.updateOne(
         { _id: user._id },
-        { $set: { reset_token: resetToken, reset_expires_at: resetExpiresAt } },
+        {
+          $set: {
+            reset_token: hashedToken,
+            reset_expires_at: resetExpiresAt,
+          },
+        },
       )
+
       try {
-        await sendPasswordResetEmail(user.email, resetToken)
+        await sendPasswordResetEmail(user.email, rawToken)//raw token
       } catch (mailErr) {
         console.error('sendPasswordResetEmail failed:', mailErr)
       }
     }
- 
-    return res.status(200).json({ message: 'If that email exists, a reset link has been sent.' })
+
+    return res.status(200).json({
+      message: 'If that email exists, a reset link has been sent.',
+    })
   } catch (err) {
     console.error('POST /auth/forgot-password error:', err)
     return res.status(500).json({ error: 'Internal server error' })
@@ -494,19 +533,40 @@ app.post('/auth/forgot-password', async (req, res) => {
 app.post('/auth/reset-password', async (req, res) => {
   try {
     const { token, new_password } = req.body
+
     if (!token || !new_password || new_password.length < 8) {
       return res.status(400).json({ error: 'token and new_password (min 8 chars) are required' })
     }
+
     const users = mongoDb().collection('users')
-    const user  = await users.findOne({ reset_token: token })
-    if (!user || new Date() > user.reset_expires_at) {
+
+    const hashedToken = hashToken(token)
+    const hashedPassword = await bcrypt.hash(new_password, 12)
+
+    const result = await users.updateOne(
+      {
+        reset_token: hashedToken,
+        reset_expires_at: { $gt: new Date() },
+      },
+      {
+        $set: {
+          password: hashedPassword,
+          password_changed_at: new Date(),
+        },
+        $unset: {
+          reset_token: '',
+          reset_expires_at: '',
+        },
+      },
+    )
+
+    if (result.modifiedCount === 0) {
       return res.status(400).json({ error: 'Invalid or expired reset token' })
     }
-    await users.updateOne(
-      { _id: user._id },
-      { $set: { password: await bcrypt.hash(new_password, 12) }, $unset: { reset_token: '', reset_expires_at: '' } },
-    )
-    return res.status(200).json({ message: 'Password reset successfully. You can now log in.' })
+
+    return res.status(200).json({
+      message: 'Password reset successfully. You can now log in.',
+    })
   } catch (err) {
     console.error('POST /auth/reset-password error:', err)
     return res.status(500).json({ error: 'Internal server error' })
