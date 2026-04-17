@@ -97,7 +97,6 @@ function Account() {
               <h3 className="account-workspace-subheading">
                 User: {user.display_name}
               </h3>
-              <p className="account-user-id">User ID: {user.id}</p>
             </div>
 
             <div className="account-stats-row">

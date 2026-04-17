@@ -8,7 +8,7 @@ import { API_BASE } from "../apiBase.ts";
 import Account from "./Account.tsx";
 import EditorPanel, { type EditorTab } from "./EditorPanel.tsx";
 import Leaderboard from "./Leaderboard.tsx";
-import OutputPanel from "./OutputPanel.tsx";
+import OutputPanel, { type OutputPanelMetrics } from "./OutputPanel.tsx";
 import ReadmeMonacoPanel from "./ReadmeMonacoPanel.tsx";
 import ForgotPassword from "./ForgotPassword.tsx";
 import Login from "./Login.tsx";
@@ -26,11 +26,7 @@ type MainPageProps = {
 type Submission = {
   id: string;
   status: string;
-  metrics: {
-    gas: number;
-    memory_bytes: number;
-    lines: number;
-  };
+  metrics?: OutputPanelMetrics;
   language: string;
 };
 
@@ -39,6 +35,11 @@ type Challenge = {
   title?: string;
   description?: string;
 };
+
+/** Matches server `queued` / `running` — metrics are placeholders until evaluation finishes. */
+function submissionMetricsReady(status: string): boolean {
+  return status !== "queued" && status !== "running";
+}
 
 function MainPage({ token, setToken }: MainPageProps) {
   const navigate = useNavigate();
@@ -60,6 +61,9 @@ function MainPage({ token, setToken }: MainPageProps) {
   const [nextUntitled, setNextUntitled] = useState(1);
 
   const [output, setOutput] = useState<string>("");
+  const [outputMetrics, setOutputMetrics] = useState<OutputPanelMetrics | null>(
+    null
+  );
   const [loading, setLoading] = useState<boolean>(false);
   const [leftPaneTab, setLeftPaneTab] = useState<
     "readme" | "account" | "leaderboard" | "output"
@@ -204,18 +208,20 @@ function MainPage({ token, setToken }: MainPageProps) {
 
         const data: Submission = await res.json();
 
-        setOutput(
-          `Status: ${data.status}\n\n` +
-            JSON.stringify(data.metrics, null, 2)
-        );
+        setOutput(`Submission ${data.id}\nStatus: ${data.status}\n`);
 
-        if (data.status !== "queued") {
+        if (submissionMetricsReady(data.status) && data.metrics != null) {
+          setOutputMetrics(data.metrics);
+        }
+
+        if (submissionMetricsReady(data.status)) {
           clearInterval(interval);
           setLoading(false);
         }
       } catch (err) {
         clearInterval(interval);
         setLoading(false);
+        setOutputMetrics(null);
         setOutput("Error while polling submission.");
       }
     }, 1000);
@@ -226,6 +232,7 @@ function MainPage({ token, setToken }: MainPageProps) {
 
     setLoading(true);
     setLeftPaneTab("output");
+    setOutputMetrics(null);
     setOutput("Submitting...\n");
 
     try {
@@ -256,6 +263,7 @@ function MainPage({ token, setToken }: MainPageProps) {
     } catch (err) {
       console.error(err);
       setLoading(false);
+      setOutputMetrics(null);
       setOutput("Submission failed.");
     }
   };
@@ -354,7 +362,7 @@ function MainPage({ token, setToken }: MainPageProps) {
                   <Leaderboard />
                 </Tabs.Content>
                 <Tabs.Content className="editor-tab-content" value="output">
-                  <OutputPanel output={output} />
+                  <OutputPanel output={output} metrics={outputMetrics} />
                 </Tabs.Content>
               </Tabs.Root>
             </div>
