@@ -867,10 +867,6 @@ if (require.main === module) {
   start().catch(console.error)
 }
 
-if (require.main === module) {
-  start().catch(console.error)
-}
-
 app.closeMongo = () => client.close()
 
 module.exports = { app, start, client }
