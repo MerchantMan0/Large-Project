@@ -321,7 +321,17 @@ function MainPage({ token, setToken }: MainPageProps) {
     <>
     <div className="app-grid">
       <header className="header">
-        <h1>Lua Leetcode</h1>
+        <div className="header-brand">
+          <img
+            className="header-brand-logo"
+            src={`${process.env.PUBLIC_URL ?? ""}/lua-icon.png`}
+            alt=""
+            width={40}
+            height={40}
+            decoding="async"
+          />
+          <h1>Lua Leetcode</h1>
+        </div>
 
         <nav className="header-nav">
           <button type="button" onClick={handleLogout}>
