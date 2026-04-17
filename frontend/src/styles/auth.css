@@ -1,0 +1,144 @@
+.auth-page {
+  max-width: 420px;
+  margin: 2rem auto;
+  padding: 24px;
+  background: var(--color-auth-card-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-workspace);
+  border-radius: var(--radius-auth);
+  box-shadow: var(--shadow-auth);
+}
+
+.auth-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-page label {
+  color: var(--color-tab-row-muted);
+  font-size: 14px;
+}
+
+.auth-page input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--color-border-workspace);
+  background: var(--color-workspace-tab-bg);
+  color: var(--color-text);
+  outline: none;
+}
+
+.auth-page input::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.auth-page input:focus {
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 1.5px var(--color-focus-ring);
+}
+
+.auth-page button {
+  border-radius: var(--radius-input);
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.auth-page button[type="submit"] {
+  margin-top: 8px;
+  min-height: 52px;
+  background: var(--color-accent-solid);
+  color: var(--color-text);
+}
+
+.auth-page button[type="submit"]:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.auth-page button[type="button"] {
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  color: var(--color-tab-row-muted);
+}
+
+.auth-page button[type="button"]:hover {
+  color: var(--color-text);
+}
+
+.auth-page h2 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.auth-message {
+  text-align: center;
+  margin-top: 1rem;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-deep);
+  border: 1px solid var(--color-border-workspace);
+  color: var(--color-text-muted);
+}
+
+.auth-message--success {
+  color: var(--color-success-bright);
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.auth-message--error {
+  color: var(--color-error);
+  border-color: rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.forgot-password {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--color-tab-row-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
+.forgot-password:hover {
+  color: var(--color-focus-ring);
+}
+
+.login-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(2, 6, 23, 0.78);
+}
+
+.login-dialog-content {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 51;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(90vh, 640px);
+  overflow: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.login-dialog-title {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+}

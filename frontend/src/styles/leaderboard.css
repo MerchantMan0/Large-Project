@@ -1,0 +1,28 @@
+/* Rank badges (Leaderboard tab + any future use) */
+.rank {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.rank-1 {
+  background: var(--color-rank-gold);
+  color: black;
+}
+
+.rank-2 {
+  background: var(--color-rank-silver);
+  color: black;
+}
+
+.rank-3 {
+  background: var(--color-rank-bronze);
+  color: black;
+}
+
+.rank:not(.rank-1):not(.rank-2):not(.rank-3) {
+  background: var(--color-surface-metric);
+  color: var(--color-text-slate);
+}

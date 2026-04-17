@@ -179,6 +179,7 @@ class _MainPageState extends State<MainPage>
   Widget _buildLeaderboardCard(dynamic item, String metricKey) {
     final user = item['user'] ?? {};
     final metrics = item['metrics'] ?? {};
+    final rank = item['rank'];
 
     String metricValue = '-';
     String metricLabel = 'Value';
@@ -194,6 +195,20 @@ class _MainPageState extends State<MainPage>
       metricLabel = 'Lines';
     }
 
+    Color rankColor = const Color(0xFF2563EB);
+    Color rankTextColor = Colors.white;
+
+    if (rank == 1) {
+      rankColor = const Color(0xFFFFD700); // gold
+      rankTextColor = Colors.black;
+    } else if (rank == 2) {
+      rankColor = const Color(0xFFC0C0C0); // silver
+      rankTextColor = Colors.black;
+    } else if (rank == 3) {
+      rankColor = const Color(0xFFCD7F32); // bronze
+      rankTextColor = Colors.black;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -207,13 +222,13 @@ class _MainPageState extends State<MainPage>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF2563EB),
+              color: rankColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               '#${(item['rank'] ?? '-').toString()}',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: rankTextColor,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -385,6 +400,18 @@ class _MainPageState extends State<MainPage>
                 },
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back to Menu'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF475569)),
+                ),
+              ),
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/history');
+                },
+                icon: const Icon(Icons.history),
+                label: const Text('History'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Color(0xFF475569)),
