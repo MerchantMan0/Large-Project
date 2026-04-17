@@ -4,6 +4,7 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const { MongoClient, ObjectId } = require('mongodb')
 const { processSubmissionEvaluation } = require('./lib/submissionEvaluation')
+const { luaLineCountForMetrics } = require('./lib/prepareLuaForEval')
 const { COLLECTION_CHALLENGES, COLLECTION_SUBMISSIONS } = require('./lib/challengeSchema')
 
 const bcrypt = require('bcrypt')
@@ -123,6 +124,21 @@ function submissionToApiListItem(doc) {
     status: doc.status,
     submitted_at: iso(doc.submitted_at),
     metrics: normalizeMetrics(doc.metrics),
+  }
+}
+
+async function submissionStatsForUser(db, userId) {
+  const uid = String(userId)
+  const coll = db.collection(COLLECTION_SUBMISSIONS)
+  const [submissions, accepted, solvedChallengeIds] = await Promise.all([
+    coll.countDocuments({ user_id: uid }),
+    coll.countDocuments({ user_id: uid, status: 'accepted' }),
+    coll.distinct('challenge_id', { user_id: uid, status: 'accepted' }),
+  ])
+  return {
+    submissions,
+    accepted,
+    challenges_solved: solvedChallengeIds.length,
   }
 }
 
@@ -662,7 +678,12 @@ app.post('/challenges/:challenge_id/submissions', requireBearer, async (req, res
   const language    = req.body && req.body.language != null ? String(req.body.language) : 'lua'
   const source      = req.body && req.body.source != null ? String(req.body.source) : ''
   const displayName = req.user && req.user.username ? String(req.user.username) : userId
-  const lines       = source === '' ? 1 : source.split('\n').length
+  const lines =
+    language === 'lua'
+      ? luaLineCountForMetrics(source)
+      : source === ''
+        ? 1
+        : source.split('\n').length
   const now         = new Date()
  
   const doc = {
@@ -779,10 +800,11 @@ app.get('/users/me', requireBearer, async (req, res) => {
     }
     const user = await mongoDb().collection('users').findOne({ _id: new ObjectId(req.user.id) })
     if (!user) return res.status(404).json({ error: 'User not found' })
+    const stats = await submissionStatsForUser(mongoDb(), user._id.toString())
     return res.status(200).json({
       id:           user._id.toString(),
       display_name: user.username,
-      stats:        user.stats || { submissions: 0, accepted: 0, challenges_solved: 0 },
+      stats,
     })
   } catch (err) {
     console.error('GET /users/me error:', err)
@@ -798,10 +820,11 @@ app.get('/users/:user_id', async (req, res) => {
     }
     const user = await mongoDb().collection('users').findOne({ _id: new ObjectId(userId) })
     if (!user) return res.status(404).json({ error: 'User not found' })
+    const stats = await submissionStatsForUser(mongoDb(), user._id.toString())
     return res.status(200).json({
       id:           user._id.toString(),
       display_name: user.username,
-      stats:        user.stats,
+      stats,
     })
   } catch (err) {
     console.error('GET /users/:user_id error:', err)
@@ -861,10 +884,6 @@ async function start(options = {}) {
       console.log('Server listening on port 5000')
     })
   }
-}
-
-if (require.main === module) {
-  start().catch(console.error)
 }
 
 if (require.main === module) {
