@@ -8,7 +8,10 @@ import { API_BASE } from "../apiBase.ts";
 import Account from "./Account.tsx";
 import EditorPanel, { type EditorTab } from "./EditorPanel.tsx";
 import Leaderboard from "./Leaderboard.tsx";
-import OutputPanel, { type OutputPanelMetrics } from "./OutputPanel.tsx";
+import OutputPanel, {
+  type OutputPanelMetrics,
+  type OutputRunStatus,
+} from "./OutputPanel.tsx";
 import ReadmeMonacoPanel from "./ReadmeMonacoPanel.tsx";
 import ForgotPassword from "./ForgotPassword.tsx";
 import Login from "./Login.tsx";
@@ -28,6 +31,7 @@ type Submission = {
   status: string;
   metrics?: OutputPanelMetrics;
   language: string;
+  console?: string[];
 };
 
 type Challenge = {
@@ -36,9 +40,35 @@ type Challenge = {
   description?: string;
 };
 
-/** Matches server `queued` / `running` — metrics are placeholders until evaluation finishes. */
 function submissionMetricsReady(status: string): boolean {
   return status !== "queued" && status !== "running";
+}
+
+function submissionStatusVariant(
+  status: string
+): "success" | "error" | "neutral" {
+  const s = status.toLowerCase();
+  if (s === "accepted") return "success";
+  if (s === "rejected" || s === "error") return "error";
+  return "neutral";
+}
+
+function formatSubmissionBodyText(data: Submission): string {
+  const consoleLines = (data.console ?? []).map((line) => String(line));
+  if (consoleLines.length > 0) {
+    return consoleLines.join("\n");
+  }
+  if (submissionMetricsReady(data.status)) {
+    return "No program output.";
+  }
+  return "Waiting for worker…";
+}
+
+function runStatusFromSubmission(data: Submission): OutputRunStatus {
+  return {
+    text: data.status,
+    variant: submissionStatusVariant(data.status),
+  };
 }
 
 function MainPage({ token, setToken }: MainPageProps) {
@@ -60,7 +90,10 @@ function MainPage({ token, setToken }: MainPageProps) {
   const [activeEditorTab, setActiveEditorTab] = useState("main");
   const [nextUntitled, setNextUntitled] = useState(1);
 
-  const [output, setOutput] = useState<string>("");
+  const [outputBody, setOutputBody] = useState<string>("");
+  const [outputRunStatus, setOutputRunStatus] = useState<OutputRunStatus | null>(
+    null
+  );
   const [outputMetrics, setOutputMetrics] = useState<OutputPanelMetrics | null>(
     null
   );
@@ -208,7 +241,8 @@ function MainPage({ token, setToken }: MainPageProps) {
 
         const data: Submission = await res.json();
 
-        setOutput(`Submission ${data.id}\nStatus: ${data.status}\n`);
+        setOutputBody(formatSubmissionBodyText(data));
+        setOutputRunStatus(runStatusFromSubmission(data));
 
         if (submissionMetricsReady(data.status) && data.metrics != null) {
           setOutputMetrics(data.metrics);
@@ -222,7 +256,8 @@ function MainPage({ token, setToken }: MainPageProps) {
         clearInterval(interval);
         setLoading(false);
         setOutputMetrics(null);
-        setOutput("Error while polling submission.");
+        setOutputBody("Could not load the latest submission result.");
+        setOutputRunStatus({ text: "error", variant: "error" });
       }
     }, 1000);
   };
@@ -233,7 +268,8 @@ function MainPage({ token, setToken }: MainPageProps) {
     setLoading(true);
     setLeftPaneTab("output");
     setOutputMetrics(null);
-    setOutput("Submitting...\n");
+    setOutputRunStatus(null);
+    setOutputBody("Submitting…");
 
     try {
       const token = localStorage.getItem("token");
@@ -255,16 +291,16 @@ function MainPage({ token, setToken }: MainPageProps) {
 
       const data: Submission = await res.json();
 
-      setOutput(
-        `Submission created!\nID: ${data.id}\nStatus: ${data.status}\n\nPolling...`
-      );
+      setOutputBody("Waiting...");
+      setOutputRunStatus(runStatusFromSubmission(data));
 
       pollSubmission(data.id);
     } catch (err) {
       console.error(err);
       setLoading(false);
       setOutputMetrics(null);
-      setOutput("Submission failed.");
+      setOutputBody("Submission failed.");
+      setOutputRunStatus({ text: "Failed", variant: "error" });
     }
   };
 
@@ -362,7 +398,11 @@ function MainPage({ token, setToken }: MainPageProps) {
                   <Leaderboard />
                 </Tabs.Content>
                 <Tabs.Content className="editor-tab-content" value="output">
-                  <OutputPanel output={output} metrics={outputMetrics} />
+                  <OutputPanel
+                    outputBody={outputBody}
+                    metrics={outputMetrics}
+                    runStatus={outputRunStatus}
+                  />
                 </Tabs.Content>
               </Tabs.Root>
             </div>

@@ -334,6 +334,44 @@
   line-height: 1.5;
 }
 
+.workspace-panel .output-panel-run-status {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin: 0;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--ws-border);
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.workspace-panel .output-panel-run-status-label {
+  color: var(--color-tab-row-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.workspace-panel .output-panel-run-status-value {
+  font-weight: 600;
+}
+
+.workspace-panel .output-panel-run-status--success .output-panel-run-status-value {
+  color: var(--color-success-bright);
+}
+
+.workspace-panel .output-panel-run-status--error .output-panel-run-status-value {
+  color: var(--color-error);
+}
+
+.workspace-panel .output-panel-run-status--neutral .output-panel-run-status-value {
+  color: var(--ws-output-text);
+}
+
 .workspace-panel .output-panel-pre {
   flex: 1;
   min-height: 0;

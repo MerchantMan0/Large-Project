@@ -6,10 +6,22 @@ export type OutputPanelMetrics = {
   lines: number;
 };
 
-type OutputPanelProps = {
-  output: string;
-  metrics: OutputPanelMetrics | null;
+export type OutputRunStatus = {
+  text: string;
+  variant: "success" | "error" | "neutral";
 };
+
+type OutputPanelProps = {
+  outputBody: string;
+  metrics: OutputPanelMetrics | null;
+  runStatus: OutputRunStatus | null;
+};
+
+function formatRunStatusText(text: string): string {
+  if (!text) return text;
+  const t = text.toLowerCase();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 function formatMemoryBytes(bytes: number): string {
   const n = Number(bytes);
@@ -20,7 +32,7 @@ function formatMemoryBytes(bytes: number): string {
   return `${(kb / 1024).toFixed(2)} MB`;
 }
 
-function OutputPanel({ output, metrics }: OutputPanelProps) {
+function OutputPanel({ outputBody, metrics, runStatus }: OutputPanelProps) {
   const gasDisplay = metrics != null ? String(metrics.gas) : "—";
   const memoryDisplay =
     metrics != null ? formatMemoryBytes(metrics.memory_bytes) : "—";
@@ -45,7 +57,17 @@ function OutputPanel({ output, metrics }: OutputPanelProps) {
             </div>
           </div>
         </div>
-        <pre className="output-panel-pre">{output}</pre>
+        <pre className="output-panel-pre">{outputBody}</pre>
+        {runStatus != null ? (
+          <div
+            className={`output-panel-run-status output-panel-run-status--${runStatus.variant}`}
+          >
+            <span className="output-panel-run-status-label">Status</span>
+            <span className="output-panel-run-status-value">
+              {formatRunStatusText(runStatus.text)}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
